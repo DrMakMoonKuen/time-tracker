@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Log Tracker</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Personal time tracking and productivity app with 24-hour grid system">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="TimeTracker">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- App Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="time-tracker-grid-icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="time-tracker-grid-icon-512.png">
+    <link rel="apple-touch-icon" href="time-tracker-grid-icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="time-tracker-grid-icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="time-tracker-grid-icon-512.png">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/microsoft-graph-client@3.0.7/lib/graph-js-sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .card-content {
+            padding: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .date-picker {
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .date-picker input {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d97706;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-loading {
+            opacity: 0.7;
+        }
+
+        .status-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .symbols {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .symbol-btn {
+            width: 3rem;
+            height: 3rem;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .symbol-btn:hover {
+            border-color: #3b82f6;
+            background-color: #f0f9ff;
+        }
+
+        .symbol-btn.active {
+            border-color: #3b82f6;
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .grid-container {
+            overflow-x: auto;
+            margin-bottom: 2rem;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(4, 1fr);
+            gap: 1px;
+            background-color: #e5e7eb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            min-width: 400px;
+        }
+
+        .time-header {
+            background-color: #f3f4f6;
+            padding: 0.5rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-align: center;
+            color: #374151;
+        }
+
+        .time-label {
+            background-color: #f9fafb;
+            padding: 0.5rem;
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-align: center;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+        }
+
+        .time-cell {
+            background-color: white;
+            min-height: 36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .time-cell:hover {
+            background-color: #f0f9ff;
+        }
+
+        .time-cell.filled {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .summary {
+            background-color: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .summary h3 {
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .summary-item {
+            background: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+
+        .summary-symbol {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-count {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .alert-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        .alert-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .setup-panel {
+            display: none;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .setup-panel.show {
+            display: block;
+        }
+
+        .setup-tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .setup-tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .setup-tab:hover {
+            background-color: #f9fafb;
+        }
+
+        .setup-tab.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .setup-content {
+            padding: 1.5rem;
+        }
+
+        .setup-section {
+            display: none;
+        }
+
+        .setup-section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .help-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .setup-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Conflict Resolution Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f59e0b;
+            margin-bottom: 0.5rem;
+        }
+
+        .conflict-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .conflict-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 1rem;
+        }
+
+        .conflict-section h4 {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .conflict-changes {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 200px;
+                justify-content: center;
+            }
+            
+            .time-grid {
+                font-size: 0.875rem;
+            }
+            
+            .time-cell {
+                min-height: 32px;
+            }
+            
+            .conflict-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="card-title">Time Log Tracker</h1>
+            <div class="date-picker">
+                <input type="date" id="dateInput" />
+            </div>
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="exportData()">📤 Export</button>
+                <button class="btn btn-secondary" onclick="importData()">📥 Import</button>
+                <button class="btn btn-primary" id="syncBtn" onclick="syncData()">☁️ Sync</button>
+                <button class="btn btn-primary" id="loadBtn" onclick="loadData()">📥 Load</button>
+                <button class="btn btn-secondary" onclick="toggleSetup()">⚙️ Setup</button>
+                <button class="btn btn-danger" onclick="clearDay()">🗑️ Clear</button>
+            </div>
+            <div class="status-text" id="statusText">Local storage only - Click Setup to configure sync</div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <!-- Setup Panel -->
+        <div class="setup-panel" id="setupPanel">
+            <div class="setup-tabs">
+                <div class="setup-tab active" onclick="switchTab('github')">GitHub Sync</div>
+                <div class="setup-tab" onclick="switchTab('onedrive')">OneDrive Sync</div>
+                <div class="setup-tab" onclick="switchTab('local')">Local Only</div>
+            </div>
+            
+            <div class="setup-content">
+                <!-- GitHub Setup -->
+                <div class="setup-section active" id="githubSetup">
+                    <h3>GitHub Sync Setup</h3>
+                    <p class="help-text">Store your data in a private GitHub repository for version control and cross-device sync.</p>
+                    
+                    <div class="form-group">
+                        <label class="form-label">GitHub Username:</label>
+                        <input type="text" class="form-input" id="githubUsername" placeholder="your-username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Repository Name:</label>
+                        <input type="text" class="form-input" id="githubRepo" value="time-tracker-data" placeholder="time-tracker-data">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Personal Access Token:</label>
+                        <input type="password" class="form-input" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                        <div class="help-text">
+                            How to get a Personal Access Token:<br>
+                            1. Go to GitHub.com → Settings → Developer settings → Personal access tokens → Tokens (classic)<br>
+                            2. Click "Generate new token (classic)"<br>
+                            3. Give it a name like "Time Tracker"<br>
+                            4. Select scope: <strong>repo</strong> (Full control of private repositories)<br>
+                            5. Click "Generate token" and copy it here
+                        </div>
+                    </div>
+                    
+                    <div class="setup-actions">
+                        <button class="btn btn-success" onclick="saveGitHubConfig()">💾 Save Configuration</button>
+                        <button class="btn btn-secondary" onclick="testGitHubConnection()">🔗 Test Connection</button>
+                    </div>
+                </div>
+
+                <!-- OneDrive Setup -->
+                <div class="setup-section" id="onedriveSetup">
+                    <h3>OneDrive Sync Setup</h3>
+                    <p class="help-text">Sign in with your Microsoft account to store data in your personal OneDrive.</p>
+                    
+                    <div id="onedriveStatus">
+                        <p>Status: <span id="onedriveStatusText">Not connected</span></p>
+                        <div class="setup-actions">
+                            <button class="btn btn-primary" id="onedriveSignInBtn" onclick="signInToOneDrive()">🔑 Sign in with Microsoft</button>
+                            <button class="btn btn-secondary" id="onedriveSignOutBtn" onclick="signOutFromOneDrive()" style="display: none;">🚪 Sign Out</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Local Setup -->
+                <div class="setup-section" id="localSetup">
+                    <h3>Local Storage Only</h3>
+                    <p class="help-text">Use local browser storage without cloud sync. Data stays on this device only.</p>
+                    
+                    <div class="setup-actions">
+                        <button class="btn btn-success" onclick="useLocalOnly()">📱 Use Local Storage</button>
+                    </div>
+                    
+                    <div style="margin-top: 1rem;">
+                        <h4>Manual Backup Options:</h4>
+                        <p class="help-text">Since data stays local, use Export/Import buttons to manually backup and transfer data between devices.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conflict Resolution Modal -->
+        <div class="modal" id="conflictModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">⚠️ Data Conflict Detected</h2>
+                    <p>Your local data differs from the cloud data. How would you like to resolve this?</p>
+                </div>
+                
+                <div class="conflict-grid">
+                    <div class="conflict-section">
+                        <h4>📱 Your Local Data</h4>
+                        <div id="localConflictInfo" class="conflict-changes"></div>
+                    </div>
+                    <div class="conflict-section">
+                        <h4>☁️ Cloud Data</h4>
+                        <div id="cloudConflictInfo" class="conflict-changes"></div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-success" onclick="resolveConflict('merge')">🔄 Smart Merge</button>
+                    <button class="btn btn-primary" onclick="resolveConflict('local')">📱 Keep Local</button>
+                    <button class="btn btn-warning" onclick="resolveConflict('cloud')">☁️ Use Cloud</button>
+                    <button class="btn btn-secondary" onclick="closeConflictModal()">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-content">
+                <h2>Select Activity Symbol</h2>
+                <div class="symbols">
+                    <div class="symbol-btn" data-symbol="●" title="Woke up">●</div>
+                    <div class="symbol-btn" data-symbol="✓" title="Working">✓</div>
+                    <div class="symbol-btn" data-symbol="P" title="Pomodoro">P</div>
+                    <div class="symbol-btn" data-symbol="M" title="Meditation">M</div>
+                    <div class="symbol-btn" data-symbol="J" title="Jogging">J</div>
+                    <div class="symbol-btn" data-symbol="○" title="Social networking">○</div>
+                    <div class="symbol-btn" data-symbol="" title="Clear">×</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-content">
+                <div class="grid-container">
+                    <div class="time-grid" id="timeGrid">
+                        <div class="time-header">Hour</div>
+                        <div class="time-header">00-15</div>
+                        <div class="time-header">15-30</div>
+                        <div class="time-header">30-45</div>
+                        <div class="time-header">45-00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-content">
+                <div class="summary" id="summary">
+                    <h3>Daily Summary</h3>
+                    <div class="summary-grid" id="summaryGrid">
+                        <!-- Summary items will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+
+    <script>
+        // Global variables
+        let currentDate = new Date().toISOString().split('T')[0];
+        let selectedSymbol = '✓';
+        let gridData = {};
+        let syncMode = 'local'; // 'local', 'github', 'onedrive'
+        let githubConfig = null;
+        let isOneDriveAuthenticated = false;
+        let conflictData = null;
+
+        // Enhanced data structure with timestamps
+        function createDataEntry(symbol, timestamp = null) {
+            return {
+                symbol: symbol,
+                timestamp: timestamp || new Date().toISOString(),
+                device: navigator.userAgent.substring(0, 50) // Device fingerprint
+            };
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('dateInput').value = currentDate;
+            document.getElementById('dateInput').addEventListener('change', function(e) {
+                currentDate = e.target.value;
+                loadData();
+            });
+
+            loadSyncMode();
+            loadGitHubConfig();
+            loadData();
+            renderGrid();
+            updateSummary();
+            updateSyncStatus();
+
+            // Symbol selection
+            document.querySelectorAll('.symbol-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedSymbol = this.dataset.symbol;
+                });
+            });
+
+            // Set default selected symbol
+            document.querySelector('.symbol-btn[data-symbol="✓"]').classList.add('active');
+        });
+
+        // Enhanced conflict detection and resolution
+        function detectConflicts(localData, cloudData) {
+            const conflicts = [];
+            const allKeys = new Set([...Object.keys(localData), ...Object.keys(cloudData)]);
+            
+            for (const key of allKeys) {
+                const local = localData[key];
+                const cloud = cloudData[key];
+                
+                if (local && cloud) {
+                    // Both exist - check if different
+                    if (local.symbol !== cloud.symbol) {
+                        conflicts.push({
+                            key,
+                            local: local,
+                            cloud: cloud,
+                            type: 'different'
+                        });
+                    }
+                } else if (local && !cloud) {
+                    conflicts.push({
+                        key,
+                        local: local,
+                        cloud: null,
+                        type: 'local_only'
+                    });
+                } else if (!local && cloud) {
+                    conflicts.push({
+                        key,
+                        local: null,
+                        cloud: cloud,
+                        type: 'cloud_only'
+                    });
+                }
+            }
+            
+            return conflicts;
+        }
+
+        function smartMerge(localData, cloudData) {
+            const merged = {};
+            const allKeys = new Set([...Object.keys(localData), ...Object.keys(cloudData)]);
+            
+            for (const key of allKeys) {
+                const local = localData[key];
+                const cloud = cloudData[key];
+                
+                if (local && cloud) {
+                    // Both exist - use the newer one based on timestamp
+                    const localTime = new Date(local.timestamp);
+                    const cloudTime = new Date(cloud.timestamp);
+                    merged[key] = localTime > cloudTime ? local : cloud;
+                } else {
+                    // Use whichever exists
+                    merged[key] = local || cloud;
+                }
+            }
+            
+            return merged;
+        }
+
+        function showConflictModal(conflicts, localData, cloudData) {
+            conflictData = { conflicts, localData, cloudData };
+            
+            // Populate conflict information
+            const localInfo = document.getElementById('localConflictInfo');
+            const cloudInfo = document.getElementById('cloudConflictInfo');
+            
+            const localChanges = conflicts.filter(c => c.local).length;
+            const cloudChanges = conflicts.filter(c => c.cloud).length;
+            
+            localInfo.innerHTML = `
+                <p><strong>Changes:</strong> ${localChanges}</p>
+                <p><strong>Last modified:</strong> ${getLastModified(localData)}</p>
+                <p><strong>Device:</strong> This device</p>
+            `;
+            
+            cloudInfo.innerHTML = `
+                <p><strong>Changes:</strong> ${cloudChanges}</p>
+                <p><strong>Last modified:</strong> ${getLastModified(cloudData)}</p>
+                <p><strong>Source:</strong> ${syncMode === 'github' ? 'GitHub' : 'OneDrive'}</p>
+            `;
+            
+            document.getElementById('conflictModal').classList.add('show');
+        }
+
+        function getLastModified(data) {
+            const timestamps = Object.values(data).map(entry => new Date(entry.timestamp));
+            if (timestamps.length === 0) return 'Never';
+            const latest = new Date(Math.max(...timestamps));
+            return latest.toLocaleString();
+        }
+
+        function resolveConflict(resolution) {
+            if (!conflictData) return;
+            
+            const { conflicts, localData, cloudData } = conflictData;
+            let resolvedData = {};
+            
+            switch (resolution) {
+                case 'merge':
+                    resolvedData = smartMerge(localData, cloudData);
+                    showAlert('success', `Smart merge completed! Combined ${Object.keys(resolvedData).length} entries.`);
+                    break;
+                case 'local':
+                    resolvedData = localData;
+                    showAlert('info', 'Kept your local data. Cloud data was discarded.');
+                    break;
+                case 'cloud':
+                    resolvedData = cloudData;
+                    showAlert('info', 'Used cloud data. Your local changes were discarded.');
+                    break;
+            }
+            
+            // Apply resolved data
+            gridData = resolvedData;
+            saveData();
+            renderGrid();
+            updateSummary();
+            
+            closeConflictModal();
+            
+            // Continue with the original sync operation
+            if (resolution !== 'local') {
+                performSync(resolvedData);
+            }
+        }
+
+        function closeConflictModal() {
+            document.getElementById('conflictModal').classList.remove('show');
+            conflictData = null;
+        }
+
+        // Enhanced sync functions with conflict detection
+        async function syncData() {
+            if (syncMode === 'local') {
+                showAlert('info', 'Local mode - no sync needed. Use Export to backup data.');
+                return;
+            }
+            
+            // Create backup before sync
+            const backupKey = `backup_${currentDate}_${Date.now()}`;
+            localStorage.setItem(backupKey, JSON.stringify(gridData));
+            
+            if (syncMode === 'github') {
+                await syncToGitHub();
+            } else if (syncMode === 'onedrive') {
+                await syncToOneDrive();
+            }
+        }
+
+        async function loadData() {
+            if (syncMode === 'local') {
+                loadLocalData();
+                return;
+            }
+            
+            if (syncMode === 'github') {
+                await loadFromGitHub();
+            } else if (syncMode === 'onedrive') {
+                await loadFromOneDrive();
+            }
+        }
+
+        function loadLocalData() {
+            const saved = localStorage.getItem('timeLog_' + currentDate);
+            if (saved) {
+                const data = JSON.parse(saved);
+                // Convert old format to new format with timestamps
+                gridData = {};
+                for (const [key, value] of Object.entries(data)) {
+                    if (typeof value === 'string') {
+                        // Old format - convert to new format
+                        gridData[key] = createDataEntry(value);
+                    } else {
+                        // New format - use as is
+                        gridData[key] = value;
+                    }
+                }
+            } else {
+                gridData = {};
+            }
+            renderGrid();
+            updateSummary();
+        }
+
+        function saveData() {
+            localStorage.setItem('timeLog_' + currentDate, JSON.stringify(gridData));
+        }
+
+        // Enhanced GitHub sync with conflict detection
+        async function syncToGitHub() {
+            if (!githubConfig) {
+                showAlert('error', 'Please configure GitHub settings first.');
+                return;
+            }
+
+            const syncBtn = document.getElementById('syncBtn');
+            syncBtn.classList.add('btn-loading');
+            syncBtn.disabled = true;
+
+            try {
+                // First, try to get existing data to check for conflicts
+                const existingData = await fetchFromGitHub();
+                
+                if (existingData && Object.keys(existingData).length > 0) {
+                    const conflicts = detectConflicts(gridData, existingData);
+                    
+                    if (conflicts.length > 0) {
+                        syncBtn.classList.remove('btn-loading');
+                        syncBtn.disabled = false;
+                        showConflictModal(conflicts, gridData, existingData);
+                        return;
+                    }
+                }
+                
+                // No conflicts - proceed with sync
+                await performSync(gridData);
+                
+            } catch (error) {
+                showAlert('error', 'Failed to sync to GitHub: ' + error.message);
+            } finally {
+                syncBtn.classList.remove('btn-loading');
+                syncBtn.disabled = false;
+            }
+        }
+
+        async function performSync(dataToSync) {
+            const fileName = `time-log-${currentDate}.json`;
+            const content = JSON.stringify({
+                date: currentDate,
+                data: dataToSync,
+                timestamp: new Date().toISOString(),
+                version: '2.0'
+            }, null, 2);
+
+            // Check if file exists
+            let sha = null;
+            try {
+                const response = await fetch(`https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${fileName}`, {
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const fileData = await response.json();
+                    sha = fileData.sha;
+                }
+            } catch (error) {
+                // File doesn't exist, which is fine
+            }
+
+            // Create or update file
+            const updateResponse = await fetch(`https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${fileName}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${githubConfig.token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: `Update time log for ${currentDate}`,
+                    content: btoa(unescape(encodeURIComponent(content))),
+                    sha: sha
+                })
+            });
+
+            if (!updateResponse.ok) {
+                throw new Error(`GitHub API error: ${updateResponse.status}`);
+            }
+
+            localStorage.setItem('lastGitHubSync', new Date().toISOString());
+            updateSyncStatus();
+            showAlert('success', `Data for ${currentDate} synced to GitHub successfully!`);
+        }
+
+        async function fetchFromGitHub() {
+            const fileName = `time-log-${currentDate}.json`;
+            
+            try {
+                const response = await fetch(`https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${fileName}`, {
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (response.ok) {
+                    const fileData = await response.json();
+                    const content = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
+                    return content.data || {};
+                }
+            } catch (error) {
+                console.log('No existing data found:', error);
+            }
+            
+            return {};
+        }
+
+        async function loadFromGitHub() {
+            if (!githubConfig) {
+                showAlert('error', 'Please configure GitHub settings first.');
+                return;
+            }
+
+            try {
+                const cloudData = await fetchFromGitHub();
+                
+                if (Object.keys(cloudData).length > 0) {
+                    // Check for conflicts with local data
+                    const localDataExists = Object.keys(gridData).length > 0;
+                    
+                    if (localDataExists) {
+                        const conflicts = detectConflicts(gridData, cloudData);
+                        
+                        if (conflicts.length > 0) {
+                            showConflictModal(conflicts, gridData, cloudData);
+                            return;
+                        }
+                    }
+                    
+                    // No conflicts - use cloud data
+                    gridData = cloudData;
+                    saveData();
+                    renderGrid();
+                    updateSummary();
+                    showAlert('success', `Data for ${currentDate} loaded from GitHub!`);
+                } else {
+                    showAlert('info', `No data found in GitHub for ${currentDate}.`);
+                }
+            } catch (error) {
+                showAlert('error', 'Failed to load from GitHub: ' + error.message);
+            }
+        }
+
+        // Similar enhancements for OneDrive functions...
+        async function syncToOneDrive() {
+            if (!isOneDriveAuthenticated) {
+                await signInToOneDrive();
+                if (!isOneDriveAuthenticated) return;
+            }
+
+            const syncBtn = document.getElementById('syncBtn');
+            syncBtn.classList.add('btn-loading');
+            syncBtn.disabled = true;
+
+            try {
+                // Check for existing data and conflicts
+                const existingData = await fetchFromOneDrive();
+                
+                if (existingData && Object.keys(existingData).length > 0) {
+                    const conflicts = detectConflicts(gridData, existingData);
+                    
+                    if (conflicts.length > 0) {
+                        syncBtn.classList.remove('btn-loading');
+                        syncBtn.disabled = false;
+                        showConflictModal(conflicts, gridData, existingData);
+                        return;
+                    }
+                }
+
+                // Simulate OneDrive sync with enhanced data
+                const data = {
+                    date: currentDate,
+                    data: gridData,
+                    timestamp: new Date().toISOString(),
+                    version: '2.0'
+                };
+
+                localStorage.setItem('onedrive_' + currentDate, JSON.stringify(data));
+                localStorage.setItem('lastOneDriveSync', new Date().toISOString());
+                
+                updateSyncStatus();
+                showAlert('success', `Data for ${currentDate} synced to OneDrive! (Demo mode)`);
+            } catch (error) {
+                showAlert('error', 'Failed to sync to OneDrive: ' + error.message);
+            } finally {
+                syncBtn.classList.remove('btn-loading');
+                syncBtn.disabled = false;
+            }
+        }
+
+        async function fetchFromOneDrive() {
+            try {
+                const savedData = localStorage.getItem('onedrive_' + currentDate);
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    return data.data || {};
+                }
+            } catch (error) {
+                console.log('No existing OneDrive data found:', error);
+            }
+            return {};
+        }
+
+        async function loadFromOneDrive() {
+            if (!isOneDriveAuthenticated) {
+                showAlert('error', 'Please sign in to OneDrive first.');
+                return;
+            }
+
+            try {
+                const cloudData = await fetchFromOneDrive();
+                
+                if (Object.keys(cloudData).length > 0) {
+                    const localDataExists = Object.keys(gridData).length > 0;
+                    
+                    if (localDataExists) {
+                        const conflicts = detectConflicts(gridData, cloudData);
+                        
+                        if (conflicts.length > 0) {
+                            showConflictModal(conflicts, gridData, cloudData);
+                            return;
+                        }
+                    }
+                    
+                    gridData = cloudData;
+                    saveData();
+                    renderGrid();
+                    updateSummary();
+                    showAlert('success', `Data for ${currentDate} loaded from OneDrive! (Demo mode)`);
+                } else {
+                    showAlert('info', `No data found in OneDrive for ${currentDate}.`);
+                }
+            } catch (error) {
+                showAlert('error', 'Failed to load from OneDrive: ' + error.message);
+            }
+        }
+
+        // Grid rendering and interaction
+        function renderGrid() {
+            const grid = document.getElementById('timeGrid');
+            
+            // Clear existing cells (keep headers)
+            const existingCells = grid.querySelectorAll('.time-cell, .time-label');
+            existingCells.forEach(cell => cell.remove());
+
+            // Generate time slots from 5am to 4am (24 hours)
+            const hours = [];
+            for (let i = 5; i < 24; i++) {
+                hours.push(i + ':00');
+            }
+            for (let i = 0; i < 5; i++) {
+                hours.push(i + ':00');
+            }
+
+            hours.forEach((hour, hourIndex) => {
+                // Hour label
+                const label = document.createElement('div');
+                label.className = 'time-label';
+                label.textContent = hour;
+                grid.appendChild(label);
+
+                // 4 intervals for each hour
+                for (let interval = 0; interval < 4; interval++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'time-cell';
+                    cell.dataset.hour = hourIndex;
+                    cell.dataset.interval = interval;
+                    
+                    const key = `${hourIndex}-${interval}`;
+                    const entry = gridData[key];
+                    
+                    if (entry && entry.symbol) {
+                        cell.textContent = entry.symbol;
+                        cell.classList.add('filled');
+                        cell.title = `${entry.symbol} - ${new Date(entry.timestamp).toLocaleString()}`;
+                    }
+
+                    cell.addEventListener('click', function() {
+                        const key = `${this.dataset.hour}-${this.dataset.interval}`;
+                        
+                        if (selectedSymbol === '') {
+                            // Clear cell
+                            delete gridData[key];
+                            this.textContent = '';
+                            this.classList.remove('filled');
+                            this.title = '';
+                        } else {
+                            // Set symbol with timestamp
+                            gridData[key] = createDataEntry(selectedSymbol);
+                            this.textContent = selectedSymbol;
+                            this.classList.add('filled');
+                            this.title = `${selectedSymbol} - ${new Date().toLocaleString()}`;
+                        }
+                        
+                        saveData();
+                        updateSummary();
+                    });
+
+                    grid.appendChild(cell);
+                }
+            });
+        }
+
+        function updateSummary() {
+            const summaryGrid = document.getElementById('summaryGrid');
+            const symbols = ['●', '✓', 'P', 'M', 'J', '○'];
+            const symbolNames = {
+                '●': 'Woke up',
+                '✓': 'Working',
+                'P': 'Pomodoro',
+                'M': 'Meditation',
+                'J': 'Jogging',
+                '○': 'Social'
+            };
+
+            summaryGrid.innerHTML = '';
+
+            symbols.forEach(symbol => {
+                const count = Object.values(gridData).filter(entry => entry.symbol === symbol).length;
+                
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                
+                if (symbol === '●') {
+                    // Wake up symbol - show as marker only, no time calculation
+                    item.innerHTML = `
+                        <div class="summary-symbol">${symbol}</div>
+                        <div class="summary-count">${symbolNames[symbol]}</div>
+                        <div class="summary-count">${count > 0 ? 'Marked' : 'Not set'}</div>
+                    `;
+                } else {
+                    // Regular activity symbols - calculate time
+                    const minutes = count * 15;
+                    const hours = Math.floor(minutes / 60);
+                    const remainingMinutes = minutes % 60;
+                    
+                    item.innerHTML = `
+                        <div class="summary-symbol">${symbol}</div>
+                        <div class="summary-count">${symbolNames[symbol]}</div>
+                        <div class="summary-count">${count} slots (${hours}h ${remainingMinutes}m)</div>
+                    `;
+                }
+                
+                summaryGrid.appendChild(item);
+            });
+        }
+
+        // Setup and configuration functions
+        function toggleSetup() {
+            const panel = document.getElementById('setupPanel');
+            panel.classList.toggle('show');
+        }
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.setup-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update content sections
+            document.querySelectorAll('.setup-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(tab + 'Setup').classList.add('active');
+        }
+
+        function loadSyncMode() {
+            const saved = localStorage.getItem('syncMode');
+            if (saved) {
+                syncMode = saved;
+            }
+        }
+
+        function saveSyncMode(mode) {
+            syncMode = mode;
+            localStorage.setItem('syncMode', mode);
+            updateSyncStatus();
+        }
+
+        function loadGitHubConfig() {
+            const saved = localStorage.getItem('githubConfig');
+            if (saved) {
+                githubConfig = JSON.parse(saved);
+                document.getElementById('githubUsername').value = githubConfig.username || '';
+                document.getElementById('githubRepo').value = githubConfig.repo || 'time-tracker-data';
+                document.getElementById('githubToken').value = githubConfig.token || '';
+                if (githubConfig.username && githubConfig.token) {
+                    saveSyncMode('github');
+                }
+            }
+        }
+
+        function saveGitHubConfig() {
+            const username = document.getElementById('githubUsername').value.trim();
+            const repo = document.getElementById('githubRepo').value.trim();
+            const token = document.getElementById('githubToken').value.trim();
+
+            if (!username || !repo || !token) {
+                showAlert('error', 'Please fill in all GitHub configuration fields.');
+                return;
+            }
+
+            githubConfig = { username, repo, token };
+            localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+            saveSyncMode('github');
+            
+            showAlert('success', 'GitHub configuration saved successfully!');
+            updateSyncStatus();
+        }
+
+        async function testGitHubConnection() {
+            if (!githubConfig) {
+                showAlert('error', 'Please save GitHub configuration first.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://api.github.com/user`, {
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    showAlert('success', `Connected to GitHub as ${user.login}!`);
+                } else {
+                    showAlert('error', 'Failed to connect to GitHub. Please check your token.');
+                }
+            } catch (error) {
+                showAlert('error', 'Connection test failed: ' + error.message);
+            }
+        }
+
+        // OneDrive functions (demo implementation)
+        async function signInToOneDrive() {
+            // Simulate OneDrive authentication
+            isOneDriveAuthenticated = true;
+            document.getElementById('onedriveStatusText').textContent = 'Connected (Demo mode)';
+            document.getElementById('onedriveSignInBtn').style.display = 'none';
+            document.getElementById('onedriveSignOutBtn').style.display = 'inline-flex';
+            saveSyncMode('onedrive');
+            showAlert('success', 'Signed in to OneDrive! (Demo mode)');
+            updateSyncStatus();
+        }
+
+        function signOutFromOneDrive() {
+            isOneDriveAuthenticated = false;
+            document.getElementById('onedriveStatusText').textContent = 'Not connected';
+            document.getElementById('onedriveSignInBtn').style.display = 'inline-flex';
+            document.getElementById('onedriveSignOutBtn').style.display = 'none';
+            saveSyncMode('local');
+            showAlert('info', 'Signed out from OneDrive.');
+            updateSyncStatus();
+        }
+
+        function useLocalOnly() {
+            saveSyncMode('local');
+            showAlert('success', 'Switched to local storage mode.');
+            toggleSetup();
+        }
+
+        function updateSyncStatus() {
+            const statusText = document.getElementById('statusText');
+            const syncBtn = document.getElementById('syncBtn');
+            const loadBtn = document.getElementById('loadBtn');
+
+            switch (syncMode) {
+                case 'github':
+                    statusText.textContent = `GitHub sync enabled - ${githubConfig?.username}/${githubConfig?.repo}`;
+                    syncBtn.innerHTML = '📤 Sync to GitHub';
+                    loadBtn.innerHTML = '📥 Load from GitHub';
+                    break;
+                case 'onedrive':
+                    statusText.textContent = 'OneDrive sync enabled (Demo mode)';
+                    syncBtn.innerHTML = '📤 Sync to OneDrive';
+                    loadBtn.innerHTML = '📥 Load from OneDrive';
+                    break;
+                default:
+                    statusText.textContent = 'Local storage only - Click Setup to configure sync';
+                    syncBtn.innerHTML = '☁️ Sync';
+                    loadBtn.innerHTML = '📥 Load';
+            }
+
+            const lastSync = localStorage.getItem(`last${syncMode === 'github' ? 'GitHub' : 'OneDrive'}Sync`);
+            if (lastSync && syncMode !== 'local') {
+                const syncTime = new Date(lastSync).toLocaleString();
+                statusText.textContent += ` - Last sync: ${syncTime}`;
+            }
+        }
+
+        // Utility functions
+        function exportData() {
+            const allData = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('timeLog_')) {
+                    allData[key] = JSON.parse(localStorage.getItem(key));
+                }
+            }
+
+            const dataStr = JSON.stringify(allData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `time-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            showAlert('success', 'Data exported successfully!');
+        }
+
+        function importData() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // Import all data
+                    for (const [key, value] of Object.entries(importedData)) {
+                        localStorage.setItem(key, JSON.stringify(value));
+                    }
+                    
+                    loadData();
+                    showAlert('success', `Imported ${Object.keys(importedData).length} days of data!`);
+                } catch (error) {
+                    showAlert('error', 'Failed to import data: Invalid file format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearDay() {
+            if (confirm(`Are you sure you want to clear all data for ${currentDate}?`)) {
+                gridData = {};
+                saveData();
+                renderGrid();
+                updateSummary();
+                showAlert('info', `Data for ${currentDate} has been cleared.`);
+            }
+        }
+
+        function showAlert(type, message) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => container.removeChild(alert), 300);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+
