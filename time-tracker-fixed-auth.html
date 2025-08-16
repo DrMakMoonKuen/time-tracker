@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeTracker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" type="image/png" sizes="192x192" href="time-tracker-grid-icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="time-tracker-grid-icon-512.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .date-input {
+            padding: 8px 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        .date-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .sync-status {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .main-content {
+            padding: 20px;
+        }
+
+        .activity-selector {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .activity-selector h3 {
+            margin-bottom: 15px;
+            color: #1e293b;
+        }
+
+        .activity-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .activity-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .activity-btn:hover {
+            border-color: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .activity-btn.selected {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .time-grid {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .grid-header {
+            display: grid;
+            grid-template-columns: 80px repeat(4, 1fr);
+            background: #1e293b;
+            color: white;
+            font-weight: 600;
+        }
+
+        .grid-header div {
+            padding: 12px 8px;
+            text-align: center;
+            border-right: 1px solid #374151;
+        }
+
+        .grid-row {
+            display: grid;
+            grid-template-columns: 80px repeat(4, 1fr);
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .grid-row:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .hour-label {
+            padding: 8px;
+            background: #f1f5f9;
+            border-right: 1px solid #e5e7eb;
+            font-weight: 600;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .time-cell {
+            padding: 8px;
+            border-right: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            min-height: 36px;
+        }
+
+        .time-cell:hover {
+            background: #dbeafe;
+        }
+
+        .time-cell.filled {
+            background: #bfdbfe;
+            color: #1e40af;
+        }
+
+        .summary {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .summary h3 {
+            margin-bottom: 15px;
+            color: #1e293b;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #2563eb;
+        }
+
+        .summary-item .symbol {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-item .count {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .setup-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .setup-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .setup-tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+
+        .setup-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .setup-tab.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        .setup-section {
+            display: none;
+        }
+
+        .setup-section.active {
+            display: block;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .grid-header div,
+            .time-cell,
+            .hour-label {
+                padding: 6px 4px;
+                font-size: 11px;
+            }
+
+            .activity-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 16px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Time Log Tracker</h1>
+            <div class="controls">
+                <input type="date" id="dateInput" class="date-input">
+                <button class="btn btn-primary" onclick="exportData()">📤 Export</button>
+                <button class="btn btn-primary" onclick="importData()">📥 Import</button>
+                <button class="btn btn-primary" onclick="showSetup()">⚙️ Setup</button>
+                <button class="btn btn-primary" onclick="syncToOneDrive()">☁️ Sync OneDrive</button>
+                <button class="btn btn-primary" onclick="loadFromOneDrive()">📥 Load OneDrive</button>
+                <button class="btn btn-danger" onclick="clearDay()">🗑️ Clear</button>
+            </div>
+            <div class="sync-status">
+                <div id="syncStatus">
+                    <strong>OneDrive:</strong> <span id="onedriveStatus">Not connected - Click Setup to sign in</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="activity-selector">
+                <h3>Select Activity Symbol</h3>
+                <div class="activity-buttons">
+                    <div class="activity-btn" data-symbol="●" title="Wake up">●</div>
+                    <div class="activity-btn" data-symbol="✓" title="Working">✓</div>
+                    <div class="activity-btn" data-symbol="P" title="Pomodoro">P</div>
+                    <div class="activity-btn" data-symbol="M" title="Meditation">M</div>
+                    <div class="activity-btn" data-symbol="J" title="Jogging">J</div>
+                    <div class="activity-btn" data-symbol="○" title="Social">○</div>
+                    <div class="activity-btn" data-symbol="×" title="Clear">×</div>
+                </div>
+            </div>
+
+            <div class="time-grid">
+                <div class="grid-header">
+                    <div>Hour</div>
+                    <div>00-15</div>
+                    <div>15-30</div>
+                    <div>30-45</div>
+                    <div>45-00</div>
+                </div>
+                <div id="timeGrid"></div>
+            </div>
+
+            <div class="summary">
+                <h3>Daily Summary</h3>
+                <div id="summaryContent" class="summary-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Panel -->
+    <div id="setupPanel" class="setup-panel">
+        <div class="setup-content">
+            <h2>OneDrive Sync Configuration</h2>
+            
+            <div id="onedriveSetup" class="setup-section active">
+                <h3>OneDrive Authentication</h3>
+                <p>Sign in with your Microsoft account to sync your time logs to OneDrive.</p>
+                <div style="margin: 15px 0;">
+                    <div id="onedriveAuthStatus">Status: Not signed in</div>
+                    <button class="btn btn-primary" onclick="signInToOneDrive()">🔗 Sign in with Microsoft</button>
+                    <button class="btn btn-primary" onclick="testOneDriveConnection()" style="display: none;" id="testOnedriveBtn">🔗 Test Connection</button>
+                    <button class="btn btn-danger" onclick="signOutFromOneDrive()" style="display: none;" id="signOutBtn">🚪 Sign Out</button>
+                </div>
+                <div id="onedriveResult"></div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-primary" onclick="hideSetup()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MSAL Library -->
+    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+
+    <script>
+        // Global variables
+        let selectedSymbol = '●';
+        let currentDate = new Date().toISOString().split('T')[0];
+        let timeData = {};
+        let msalInstance = null;
+        let currentAccount = null;
+
+        // MSAL Configuration with Authorization Code Flow + PKCE
+        const msalConfig = {
+            auth: {
+                clientId: 'd006fc96-89ce-4dbe-8bd1-78daab15c1df',
+                authority: 'https://login.microsoftonline.com/consumers',
+                redirectUri: window.location.origin + window.location.pathname,
+                postLogoutRedirectUri: window.location.origin + window.location.pathname
+            },
+            cache: {
+                cacheLocation: 'localStorage',
+                storeAuthStateInCookie: false
+            },
+            system: {
+                allowNativeBroker: false,
+                loggerOptions: {
+                    loggerCallback: (level, message, containsPii) => {
+                        if (containsPii) return;
+                        console.log(`MSAL [${level}]: ${message}`);
+                    },
+                    piiLoggingEnabled: false,
+                    logLevel: msal.LogLevel.Info
+                }
+            }
+        };
+
+        // Login request configuration
+        const loginRequest = {
+            scopes: ['Files.ReadWrite', 'User.Read'],
+            prompt: 'select_account'
+        };
+
+        // Token request for API calls
+        const tokenRequest = {
+            scopes: ['Files.ReadWrite'],
+            forceRefresh: false
+        };
+
+        // Initialize MSAL instance
+        async function initializeMSAL() {
+            try {
+                msalInstance = new msal.PublicClientApplication(msalConfig);
+                await msalInstance.initialize();
+                console.log('MSAL initialized successfully');
+                
+                // Handle redirect response
+                const response = await msalInstance.handleRedirectPromise();
+                if (response) {
+                    currentAccount = response.account;
+                    updateAuthStatus();
+                } else {
+                    // Check if user is already signed in
+                    const accounts = msalInstance.getAllAccounts();
+                    if (accounts.length > 0) {
+                        currentAccount = accounts[0];
+                        msalInstance.setActiveAccount(currentAccount);
+                        updateAuthStatus();
+                    }
+                }
+            } catch (error) {
+                console.error('MSAL initialization failed:', error);
+                showAlert('Authentication initialization failed: ' + error.message, 'error');
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('dateInput').value = currentDate;
+            loadTimeData();
+            generateTimeGrid();
+            updateSummary();
+            setupEventListeners();
+            initializeMSAL();
+        });
+
+        function setupEventListeners() {
+            // Date change
+            document.getElementById('dateInput').addEventListener('change', function() {
+                currentDate = this.value;
+                loadTimeData();
+                generateTimeGrid();
+                updateSummary();
+            });
+
+            // Activity button selection
+            document.querySelectorAll('.activity-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.activity-btn').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedSymbol = this.dataset.symbol;
+                });
+            });
+
+            // Select first activity by default
+            document.querySelector('.activity-btn').classList.add('selected');
+        }
+
+        function generateTimeGrid() {
+            const grid = document.getElementById('timeGrid');
+            grid.innerHTML = '';
+
+            const hours = [];
+            for (let i = 5; i < 24; i++) {
+                hours.push(String(i).padStart(2, '0') + ':00');
+            }
+            for (let i = 0; i < 5; i++) {
+                hours.push(String(i).padStart(2, '0') + ':00');
+            }
+
+            hours.forEach(hour => {
+                const row = document.createElement('div');
+                row.className = 'grid-row';
+
+                const hourLabel = document.createElement('div');
+                hourLabel.className = 'hour-label';
+                hourLabel.textContent = hour;
+                row.appendChild(hourLabel);
+
+                for (let interval = 0; interval < 4; interval++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'time-cell';
+                    cell.dataset.hour = hour;
+                    cell.dataset.interval = interval;
+
+                    const key = `${hour}-${interval}`;
+                    const data = timeData[currentDate]?.[key];
+                    if (data) {
+                        cell.textContent = data.symbol || data;
+                        cell.classList.add('filled');
+                    }
+
+                    cell.addEventListener('click', function() {
+                        handleCellClick(this);
+                    });
+
+                    row.appendChild(cell);
+                }
+
+                grid.appendChild(row);
+            });
+        }
+
+        function handleCellClick(cell) {
+            const hour = cell.dataset.hour;
+            const interval = cell.dataset.interval;
+            const key = `${hour}-${interval}`;
+
+            if (!timeData[currentDate]) {
+                timeData[currentDate] = {};
+            }
+
+            if (selectedSymbol === '×') {
+                // Clear cell
+                delete timeData[currentDate][key];
+                cell.textContent = '';
+                cell.classList.remove('filled');
+            } else {
+                // Set symbol
+                timeData[currentDate][key] = {
+                    symbol: selectedSymbol,
+                    timestamp: new Date().toISOString(),
+                    device: getDeviceFingerprint()
+                };
+                cell.textContent = selectedSymbol;
+                cell.classList.add('filled');
+            }
+
+            saveTimeData();
+            updateSummary();
+        }
+
+        function getDeviceFingerprint() {
+            return navigator.userAgent.substring(0, 50) + '_' + screen.width + 'x' + screen.height;
+        }
+
+        function updateSummary() {
+            const summaryContent = document.getElementById('summaryContent');
+            const dayData = timeData[currentDate] || {};
+            
+            const symbolCounts = {};
+            Object.values(dayData).forEach(entry => {
+                const symbol = entry.symbol || entry;
+                symbolCounts[symbol] = (symbolCounts[symbol] || 0) + 1;
+            });
+
+            const symbolNames = {
+                '●': 'Woke up',
+                '✓': 'Working',
+                'P': 'Pomodoro',
+                'M': 'Meditation',
+                'J': 'Jogging',
+                '○': 'Social'
+            };
+
+            summaryContent.innerHTML = '';
+            Object.entries(symbolNames).forEach(([symbol, name]) => {
+                const count = symbolCounts[symbol] || 0;
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                
+                if (symbol === '●') {
+                    item.innerHTML = `
+                        <div class="symbol">${symbol} ${name}</div>
+                        <div class="count">${count > 0 ? 'Marked' : 'Not set'}</div>
+                    `;
+                } else {
+                    const hours = Math.floor(count * 15 / 60);
+                    const minutes = (count * 15) % 60;
+                    item.innerHTML = `
+                        <div class="symbol">${symbol} ${name}</div>
+                        <div class="count">${count} slots (${hours}h ${minutes}m)</div>
+                    `;
+                }
+                
+                summaryContent.appendChild(item);
+            });
+        }
+
+        function saveTimeData() {
+            localStorage.setItem('timeTrackerData', JSON.stringify(timeData));
+        }
+
+        function loadTimeData() {
+            const saved = localStorage.getItem('timeTrackerData');
+            if (saved) {
+                timeData = JSON.parse(saved);
+            }
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(timeData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `time-tracker-data-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const imported = JSON.parse(e.target.result);
+                            timeData = imported;
+                            saveTimeData();
+                            generateTimeGrid();
+                            updateSummary();
+                            showAlert('Data imported successfully!', 'success');
+                        } catch (error) {
+                            showAlert('Error importing data: ' + error.message, 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function clearDay() {
+            if (confirm('Clear all data for ' + currentDate + '?')) {
+                delete timeData[currentDate];
+                saveTimeData();
+                generateTimeGrid();
+                updateSummary();
+                showAlert('Day cleared successfully!', 'success');
+            }
+        }
+
+        // Setup panel functions
+        function showSetup() {
+            document.getElementById('setupPanel').style.display = 'flex';
+        }
+
+        function hideSetup() {
+            document.getElementById('setupPanel').style.display = 'none';
+        }
+
+        // OneDrive authentication functions
+        async function signInToOneDrive() {
+            if (!msalInstance) {
+                showAlert('Authentication not initialized', 'error');
+                return;
+            }
+
+            try {
+                showAlert('Opening Microsoft sign-in...', 'info');
+                const response = await msalInstance.loginPopup(loginRequest);
+                currentAccount = response.account;
+                msalInstance.setActiveAccount(currentAccount);
+                updateAuthStatus();
+                showAlert('Successfully signed in to OneDrive!', 'success');
+            } catch (error) {
+                console.error('OneDrive sign-in error:', error);
+                if (error.errorCode === 'user_cancelled') {
+                    showAlert('Sign-in was cancelled', 'info');
+                } else {
+                    showAlert('OneDrive sign-in failed: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function signOutFromOneDrive() {
+            if (!msalInstance || !currentAccount) return;
+
+            try {
+                await msalInstance.logoutPopup({
+                    account: currentAccount,
+                    postLogoutRedirectUri: window.location.origin + window.location.pathname
+                });
+                currentAccount = null;
+                updateAuthStatus();
+                showAlert('Signed out successfully', 'info');
+            } catch (error) {
+                console.error('OneDrive sign-out error:', error);
+                showAlert('Sign-out failed: ' + error.message, 'error');
+            }
+        }
+
+        async function testOneDriveConnection() {
+            if (!currentAccount) {
+                showAlert('Please sign in to OneDrive first', 'error');
+                return;
+            }
+
+            try {
+                const accessToken = await getAccessToken();
+                const response = await fetch('https://graph.microsoft.com/v1.0/me/drive', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const driveInfo = await response.json();
+                    document.getElementById('onedriveResult').innerHTML = 
+                        `<div class="alert alert-success">✅ OneDrive connection successful! Drive: ${driveInfo.name}</div>`;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                document.getElementById('onedriveResult').innerHTML = 
+                    `<div class="alert alert-error">❌ OneDrive connection failed: ${error.message}</div>`;
+            }
+        }
+
+        async function getAccessToken() {
+            if (!msalInstance || !currentAccount) {
+                throw new Error('Not signed in to OneDrive');
+            }
+
+            try {
+                const response = await msalInstance.acquireTokenSilent({
+                    ...tokenRequest,
+                    account: currentAccount
+                });
+                return response.accessToken;
+            } catch (error) {
+                if (error instanceof msal.InteractionRequiredAuthError) {
+                    // Fallback to interactive token acquisition
+                    const response = await msalInstance.acquireTokenPopup(tokenRequest);
+                    return response.accessToken;
+                }
+                throw error;
+            }
+        }
+
+        async function syncToOneDrive() {
+            if (!currentAccount) {
+                showAlert('Please sign in to OneDrive first', 'error');
+                return;
+            }
+
+            try {
+                const accessToken = await getAccessToken();
+                const fileName = `time-log-${currentDate}.json`;
+                const dayData = timeData[currentDate] || {};
+                
+                // Create TimeTracker folder if it doesn't exist
+                await createOneDriveFolder(accessToken);
+                
+                // Upload file
+                const response = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/TimeTracker/${fileName}:/content`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dayData)
+                });
+
+                if (response.ok) {
+                    showAlert('Data synced to OneDrive successfully!', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                showAlert('OneDrive sync failed: ' + error.message, 'error');
+            }
+        }
+
+        async function loadFromOneDrive() {
+            if (!currentAccount) {
+                showAlert('Please sign in to OneDrive first', 'error');
+                return;
+            }
+
+            try {
+                const accessToken = await getAccessToken();
+                const fileName = `time-log-${currentDate}.json`;
+                
+                const response = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/TimeTracker/${fileName}:/content`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const cloudData = await response.json();
+                    timeData[currentDate] = cloudData;
+                    saveTimeData();
+                    generateTimeGrid();
+                    updateSummary();
+                    showAlert('Data loaded from OneDrive successfully!', 'success');
+                } else if (response.status === 404) {
+                    showAlert('No data found in OneDrive for this date', 'info');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                showAlert('OneDrive load failed: ' + error.message, 'error');
+            }
+        }
+
+        async function createOneDriveFolder(accessToken) {
+            try {
+                await fetch('https://graph.microsoft.com/v1.0/me/drive/root/children', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'TimeTracker',
+                        folder: {}
+                    })
+                });
+            } catch (error) {
+                // Folder might already exist, ignore error
+            }
+        }
+
+        function updateAuthStatus() {
+            const onedriveStatus = document.getElementById('onedriveStatus');
+            const authStatus = document.getElementById('onedriveAuthStatus');
+            const testBtn = document.getElementById('testOnedriveBtn');
+            const signOutBtn = document.getElementById('signOutBtn');
+            
+            if (currentAccount) {
+                onedriveStatus.textContent = `Connected as ${currentAccount.username}`;
+                authStatus.textContent = `Signed in as: ${currentAccount.username}`;
+                testBtn.style.display = 'inline-block';
+                signOutBtn.style.display = 'inline-block';
+            } else {
+                onedriveStatus.textContent = 'Not connected - Click Setup to sign in';
+                authStatus.textContent = 'Status: Not signed in';
+                testBtn.style.display = 'none';
+                signOutBtn.style.display = 'none';
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1002';
+            alertDiv.style.maxWidth = '300px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+
