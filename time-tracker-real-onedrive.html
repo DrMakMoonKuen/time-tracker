@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Log Tracker</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Personal time tracking and productivity app with 24-hour grid system">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="TimeTracker">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- App Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="time-tracker-grid-icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="time-tracker-grid-icon-512.png">
+    <link rel="apple-touch-icon" href="time-tracker-grid-icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="time-tracker-grid-icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="time-tracker-grid-icon-512.png">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Microsoft Graph SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/microsoft-graph-client@3.0.7/lib/graph-js-sdk.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .card-content {
+            padding: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .date-picker {
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .date-picker input {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-loading::after {
+            content: "⏳";
+            margin-left: 0.5rem;
+        }
+
+        .status-indicator {
+            text-align: center;
+            margin: 1rem 0;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .status-local {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+
+        .status-github {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-onedrive {
+            background-color: #ddd6fe;
+            color: #5b21b6;
+        }
+
+        .grid-container {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(4, 1fr);
+            gap: 1px;
+            background-color: #e5e7eb;
+            border: 1px solid #e5e7eb;
+            min-width: 600px;
+        }
+
+        .grid-header {
+            background-color: #f9fafb;
+            padding: 0.5rem;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.875rem;
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .hour-label {
+            background-color: #f9fafb;
+            padding: 0.5rem;
+            font-weight: 500;
+            text-align: center;
+            font-size: 0.875rem;
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .time-cell {
+            background-color: white;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .time-cell:hover {
+            background-color: #f3f4f6;
+        }
+
+        .time-cell.filled {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .symbol-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .symbol-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .symbol-btn:hover {
+            border-color: #3b82f6;
+            background-color: #f8fafc;
+        }
+
+        .symbol-btn.selected {
+            border-color: #3b82f6;
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .summary-symbol {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            border-radius: 6px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            border: 1px solid #e5e7eb;
+        }
+
+        .summary-count {
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+
+        .setup-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .setup-panel.show {
+            right: 0;
+        }
+
+        .setup-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: #f8fafc;
+        }
+
+        .setup-content {
+            padding: 1rem;
+        }
+
+        .setup-tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+        }
+
+        .setup-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .setup-tab.active {
+            color: #3b82f6;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        .setup-section {
+            display: none;
+        }
+
+        .setup-section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+
+        .alert-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .alert-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .conflict-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .conflict-modal.show {
+            display: flex;
+        }
+
+        .conflict-content {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            margin: 1rem;
+        }
+
+        .conflict-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            .setup-panel {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .time-grid {
+                font-size: 0.875rem;
+            }
+            
+            .time-cell {
+                padding: 0.5rem;
+                min-height: 32px;
+            }
+            
+            .controls {
+                justify-content: center;
+            }
+            
+            .btn {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="card-title">Time Log Tracker</h1>
+            
+            <div class="date-picker">
+                <input type="date" id="dateInput" />
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="exportData()">📤 Export</button>
+                <button class="btn btn-secondary" onclick="importData()">📥 Import</button>
+                <button class="btn btn-primary" id="syncBtn" onclick="syncToCloud()">☁️ Sync to OneDrive</button>
+                <button class="btn btn-primary" id="loadBtn" onclick="loadFromCloud()">📥 Load from OneDrive</button>
+                <button class="btn btn-secondary" onclick="toggleSetup()">⚙️ Setup</button>
+                <button class="btn btn-danger" onclick="clearDay()">🗑️ Clear</button>
+            </div>
+            
+            <div class="status-indicator" id="statusIndicator">
+                Local storage only - Click Setup to configure OneDrive sync
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-content">
+                <h3>Select Activity Symbol</h3>
+                <div class="symbol-selector">
+                    <button class="symbol-btn" data-symbol="●" title="Woke up">●</button>
+                    <button class="symbol-btn" data-symbol="✓" title="Working">✓</button>
+                    <button class="symbol-btn" data-symbol="P" title="Pomodoro">P</button>
+                    <button class="symbol-btn" data-symbol="M" title="Meditation">M</button>
+                    <button class="symbol-btn" data-symbol="J" title="Jogging">J</button>
+                    <button class="symbol-btn" data-symbol="○" title="Social">○</button>
+                    <button class="symbol-btn" data-symbol="" title="Clear">×</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-content">
+                <div class="grid-container">
+                    <div class="time-grid" id="timeGrid">
+                        <div class="grid-header">Hour</div>
+                        <div class="grid-header">00-15</div>
+                        <div class="grid-header">15-30</div>
+                        <div class="grid-header">30-45</div>
+                        <div class="grid-header">45-00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Daily Summary</h3>
+            </div>
+            <div class="card-content">
+                <div class="summary-grid" id="summaryGrid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Panel -->
+    <div class="setup-panel" id="setupPanel">
+        <div class="setup-header">
+            <h3>Sync Configuration</h3>
+            <button class="btn btn-secondary" onclick="toggleSetup()" style="float: right;">✕</button>
+        </div>
+        
+        <div class="setup-content">
+            <div class="setup-tabs">
+                <button class="setup-tab active" onclick="switchTab('onedrive')">OneDrive</button>
+                <button class="setup-tab" onclick="switchTab('github')">GitHub</button>
+                <button class="setup-tab" onclick="switchTab('local')">Local Only</button>
+            </div>
+
+            <!-- OneDrive Setup -->
+            <div id="onedriveSetup" class="setup-section active">
+                <h4>OneDrive Sync Setup</h4>
+                <p>Sign in with your Microsoft account to store data in your personal OneDrive.</p>
+                
+                <div id="onedriveStatus" class="alert alert-info">
+                    Status: Not connected
+                </div>
+                
+                <div class="form-group">
+                    <button class="btn btn-primary" id="onedriveSignInBtn" onclick="signInToOneDrive()">
+                        🔐 Sign in with Microsoft
+                    </button>
+                    <button class="btn btn-secondary" id="onedriveSignOutBtn" onclick="signOutFromOneDrive()" style="display: none;">
+                        🚪 Sign Out
+                    </button>
+                </div>
+                
+                <div class="form-group">
+                    <button class="btn btn-secondary" onclick="testOneDriveConnection()">🔍 Test Connection</button>
+                </div>
+            </div>
+
+            <!-- GitHub Setup -->
+            <div id="githubSetup" class="setup-section">
+                <h4>GitHub Sync Setup</h4>
+                <p>Enter your GitHub details to enable automatic sync:</p>
+                
+                <div class="form-group">
+                    <label class="form-label">GitHub Username:</label>
+                    <input type="text" class="form-input" id="githubUsername" placeholder="your-username">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Repository Name:</label>
+                    <input type="text" class="form-input" id="githubRepo" value="time-tracker-data">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Personal Access Token:</label>
+                    <input type="password" class="form-input" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                </div>
+                
+                <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem;">
+                    <strong>How to get a Personal Access Token:</strong><br>
+                    1. Go to GitHub.com → Settings → Developer settings → Personal access tokens → Tokens (classic)<br>
+                    2. Click "Generate new token (classic)"<br>
+                    3. Give it a name like "Time Tracker"<br>
+                    4. Select scope: <strong>repo</strong> (Full control of private repositories)<br>
+                    5. Click "Generate token" and copy it here
+                </div>
+                
+                <div class="form-group">
+                    <button class="btn btn-success" onclick="saveGitHubConfig()">💾 Save Configuration</button>
+                    <button class="btn btn-secondary" onclick="testGitHubConnection()">🔍 Test Connection</button>
+                </div>
+            </div>
+
+            <!-- Local Only Setup -->
+            <div id="localSetup" class="setup-section">
+                <h4>Local Storage Only</h4>
+                <p>Use local browser storage without cloud sync. Data stays on this device only.</p>
+                
+                <div class="form-group">
+                    <button class="btn btn-success" onclick="saveSyncMode('local')">✅ Use Local Storage Only</button>
+                </div>
+                
+                <div style="font-size: 0.875rem; color: #6b7280; margin-top: 1rem;">
+                    <strong>Local Storage Benefits:</strong><br>
+                    • Maximum privacy - data never leaves your device<br>
+                    • Works offline<br>
+                    • No setup required<br>
+                    • Use Export/Import for manual backup
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conflict Resolution Modal -->
+    <div class="conflict-modal" id="conflictModal">
+        <div class="conflict-content">
+            <h3>Sync Conflict Detected</h3>
+            <p>Your local data differs from the cloud data. How would you like to resolve this?</p>
+            
+            <div id="conflictDetails"></div>
+            
+            <div class="conflict-actions">
+                <button class="btn btn-primary" onclick="resolveConflict('merge')">🔄 Smart Merge</button>
+                <button class="btn btn-secondary" onclick="resolveConflict('local')">📱 Keep Local</button>
+                <button class="btn btn-secondary" onclick="resolveConflict('cloud')">☁️ Use Cloud</button>
+                <button class="btn btn-danger" onclick="closeConflictModal()">❌ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+
+    <script>
+        // Microsoft Graph API Configuration
+        const msalConfig = {
+            auth: {
+                clientId: 'd006fc96-89ce-4dbe-8bd1-78daab15c1df',
+                authority: 'https://login.microsoftonline.com/common',
+                redirectUri: window.location.origin + window.location.pathname
+            },
+            cache: {
+                cacheLocation: 'localStorage',
+                storeAuthStateInCookie: false
+            }
+        };
+
+        const graphConfig = {
+            graphMeEndpoint: 'https://graph.microsoft.com/v1.0/me',
+            graphFilesEndpoint: 'https://graph.microsoft.com/v1.0/me/drive/root:/TimeTracker'
+        };
+
+        // Initialize MSAL instance
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+        // Global variables
+        let currentDate = new Date().toISOString().split('T')[0];
+        let gridData = {};
+        let selectedSymbol = '';
+        let syncMode = 'local';
+        let githubConfig = null;
+        let isOneDriveAuthenticated = false;
+        let graphClient = null;
+        let conflictData = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('dateInput').value = currentDate;
+            document.getElementById('dateInput').addEventListener('change', function() {
+                currentDate = this.value;
+                loadData();
+                renderGrid();
+                updateSummary();
+            });
+
+            loadSyncMode();
+            loadGitHubConfig();
+            checkOneDriveAuth();
+            loadData();
+            renderGrid();
+            updateSummary();
+            updateSyncStatus();
+            setupSymbolSelector();
+        });
+
+        // OneDrive Authentication Functions
+        async function checkOneDriveAuth() {
+            try {
+                const accounts = msalInstance.getAllAccounts();
+                if (accounts.length > 0) {
+                    isOneDriveAuthenticated = true;
+                    await initializeGraphClient();
+                    updateOneDriveStatus();
+                }
+            } catch (error) {
+                console.log('OneDrive auth check failed:', error);
+            }
+        }
+
+        async function signInToOneDrive() {
+            try {
+                const loginRequest = {
+                    scopes: ['Files.ReadWrite', 'User.Read']
+                };
+
+                const response = await msalInstance.loginPopup(loginRequest);
+                isOneDriveAuthenticated = true;
+                await initializeGraphClient();
+                updateOneDriveStatus();
+                saveSyncMode('onedrive');
+                showAlert('success', 'Successfully signed in to OneDrive!');
+            } catch (error) {
+                console.error('OneDrive sign-in failed:', error);
+                showAlert('error', 'OneDrive sign-in failed: ' + error.message);
+            }
+        }
+
+        async function signOutFromOneDrive() {
+            try {
+                const accounts = msalInstance.getAllAccounts();
+                if (accounts.length > 0) {
+                    await msalInstance.logoutPopup({
+                        account: accounts[0]
+                    });
+                }
+                isOneDriveAuthenticated = false;
+                graphClient = null;
+                updateOneDriveStatus();
+                saveSyncMode('local');
+                showAlert('info', 'Signed out from OneDrive');
+            } catch (error) {
+                console.error('OneDrive sign-out failed:', error);
+                showAlert('error', 'Sign-out failed: ' + error.message);
+            }
+        }
+
+        async function initializeGraphClient() {
+            try {
+                const accounts = msalInstance.getAllAccounts();
+                if (accounts.length === 0) {
+                    throw new Error('No accounts found');
+                }
+
+                const silentRequest = {
+                    scopes: ['Files.ReadWrite', 'User.Read'],
+                    account: accounts[0]
+                };
+
+                const response = await msalInstance.acquireTokenSilent(silentRequest);
+                
+                graphClient = MicrosoftGraph.Client.init({
+                    authProvider: (done) => {
+                        done(null, response.accessToken);
+                    }
+                });
+
+                return true;
+            } catch (error) {
+                console.error('Failed to initialize Graph client:', error);
+                return false;
+            }
+        }
+
+        function updateOneDriveStatus() {
+            const statusDiv = document.getElementById('onedriveStatus');
+            const signInBtn = document.getElementById('onedriveSignInBtn');
+            const signOutBtn = document.getElementById('onedriveSignOutBtn');
+
+            if (isOneDriveAuthenticated) {
+                statusDiv.className = 'alert alert-success';
+                statusDiv.textContent = 'Status: Connected to OneDrive';
+                signInBtn.style.display = 'none';
+                signOutBtn.style.display = 'inline-block';
+            } else {
+                statusDiv.className = 'alert alert-info';
+                statusDiv.textContent = 'Status: Not connected';
+                signInBtn.style.display = 'inline-block';
+                signOutBtn.style.display = 'none';
+            }
+        }
+
+        async function testOneDriveConnection() {
+            if (!isOneDriveAuthenticated) {
+                showAlert('error', 'Please sign in to OneDrive first.');
+                return;
+            }
+
+            try {
+                if (!graphClient) {
+                    await initializeGraphClient();
+                }
+
+                const user = await graphClient.api('/me').get();
+                showAlert('success', `OneDrive connection successful! Signed in as: ${user.displayName}`);
+            } catch (error) {
+                console.error('OneDrive connection test failed:', error);
+                showAlert('error', 'OneDrive connection test failed: ' + error.message);
+            }
+        }
+
+        // OneDrive Sync Functions
+        async function syncToOneDrive() {
+            if (!isOneDriveAuthenticated) {
+                await signInToOneDrive();
+                if (!isOneDriveAuthenticated) return;
+            }
+
+            const syncBtn = document.getElementById('syncBtn');
+            syncBtn.classList.add('btn-loading');
+            syncBtn.disabled = true;
+
+            try {
+                if (!graphClient) {
+                    await initializeGraphClient();
+                }
+
+                // Check for existing data and conflicts
+                const existingData = await fetchFromOneDrive();
+                
+                if (existingData && Object.keys(existingData).length > 0) {
+                    const conflicts = detectConflicts(gridData, existingData);
+                    
+                    if (conflicts.length > 0) {
+                        syncBtn.classList.remove('btn-loading');
+                        syncBtn.disabled = false;
+                        showConflictModal(conflicts, gridData, existingData);
+                        return;
+                    }
+                }
+
+                // Create the data to sync
+                const data = {
+                    date: currentDate,
+                    data: gridData,
+                    timestamp: new Date().toISOString(),
+                    device: navigator.userAgent.substring(0, 50)
+                };
+
+                const fileName = `time-log-${currentDate}.json`;
+                const fileContent = JSON.stringify(data, null, 2);
+
+                // Upload to OneDrive
+                await graphClient
+                    .api(`/me/drive/root:/TimeTracker/${fileName}:/content`)
+                    .put(fileContent);
+
+                localStorage.setItem('lastOneDriveSync', new Date().toISOString());
+                updateSyncStatus();
+                showAlert('success', `Data for ${currentDate} synced to OneDrive successfully!`);
+            } catch (error) {
+                console.error('OneDrive sync failed:', error);
+                showAlert('error', 'OneDrive sync failed: ' + error.message);
+            } finally {
+                syncBtn.classList.remove('btn-loading');
+                syncBtn.disabled = false;
+            }
+        }
+
+        async function fetchFromOneDrive() {
+            const fileName = `time-log-${currentDate}.json`;
+            
+            try {
+                if (!graphClient) {
+                    await initializeGraphClient();
+                }
+
+                const fileContent = await graphClient
+                    .api(`/me/drive/root:/TimeTracker/${fileName}:/content`)
+                    .get();
+
+                if (typeof fileContent === 'string') {
+                    const data = JSON.parse(fileContent);
+                    return data.data || {};
+                } else {
+                    // Handle binary response
+                    const text = await fileContent.text();
+                    const data = JSON.parse(text);
+                    return data.data || {};
+                }
+            } catch (error) {
+                if (error.code === 'itemNotFound') {
+                    console.log('No existing data found in OneDrive');
+                    return {};
+                }
+                console.error('Failed to fetch from OneDrive:', error);
+                throw error;
+            }
+        }
+
+        async function loadFromOneDrive() {
+            if (!isOneDriveAuthenticated) {
+                showAlert('error', 'Please sign in to OneDrive first.');
+                return;
+            }
+
+            try {
+                const cloudData = await fetchFromOneDrive();
+                
+                if (Object.keys(cloudData).length > 0) {
+                    // Check for conflicts with local data
+                    const localDataExists = Object.keys(gridData).length > 0;
+                    
+                    if (localDataExists) {
+                        const conflicts = detectConflicts(gridData, cloudData);
+                        
+                        if (conflicts.length > 0) {
+                            showConflictModal(conflicts, gridData, cloudData);
+                            return;
+                        }
+                    }
+                    
+                    // No conflicts - use cloud data
+                    gridData = cloudData;
+                    saveData();
+                    renderGrid();
+                    updateSummary();
+                    showAlert('success', `Data for ${currentDate} loaded from OneDrive!`);
+                } else {
+                    showAlert('info', `No data found in OneDrive for ${currentDate}.`);
+                }
+            } catch (error) {
+                showAlert('error', 'Failed to load from OneDrive: ' + error.message);
+            }
+        }
+
+        // GitHub Sync Functions (keeping existing implementation)
+        function saveGitHubConfig() {
+            const username = document.getElementById('githubUsername').value.trim();
+            const repo = document.getElementById('githubRepo').value.trim();
+            const token = document.getElementById('githubToken').value.trim();
+
+            if (!username || !repo || !token) {
+                showAlert('error', 'Please fill in all GitHub configuration fields.');
+                return;
+            }
+
+            githubConfig = { username, repo, token };
+            localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+            saveSyncMode('github');
+            showAlert('success', 'GitHub configuration saved successfully!');
+        }
+
+        async function testGitHubConnection() {
+            if (!githubConfig) {
+                showAlert('error', 'Please configure GitHub settings first.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://api.github.com/user`, {
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    showAlert('success', `GitHub connection successful! Authenticated as: ${user.login}`);
+                } else {
+                    throw new Error(`GitHub API error: ${response.status}`);
+                }
+            } catch (error) {
+                showAlert('error', 'GitHub connection test failed: ' + error.message);
+            }
+        }
+
+        async function syncToGitHub() {
+            if (!githubConfig) {
+                showAlert('error', 'Please configure GitHub settings first.');
+                return;
+            }
+
+            const syncBtn = document.getElementById('syncBtn');
+            syncBtn.classList.add('btn-loading');
+            syncBtn.disabled = true;
+
+            try {
+                // Check for existing data and conflicts
+                const existingData = await fetchFromGitHub();
+                
+                if (existingData && Object.keys(existingData).length > 0) {
+                    const conflicts = detectConflicts(gridData, existingData);
+                    
+                    if (conflicts.length > 0) {
+                        syncBtn.classList.remove('btn-loading');
+                        syncBtn.disabled = false;
+                        showConflictModal(conflicts, gridData, existingData);
+                        return;
+                    }
+                }
+
+                const data = {
+                    date: currentDate,
+                    data: gridData,
+                    timestamp: new Date().toISOString(),
+                    device: navigator.userAgent.substring(0, 50)
+                };
+
+                const fileName = `time-log-${currentDate}.json`;
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+
+                // Check if file exists
+                let sha = null;
+                try {
+                    const existingResponse = await fetch(`https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${fileName}`, {
+                        headers: {
+                            'Authorization': `token ${githubConfig.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (existingResponse.ok) {
+                        const existingFile = await existingResponse.json();
+                        sha = existingFile.sha;
+                    }
+                } catch (error) {
+                    // File doesn't exist, which is fine
+                }
+
+                const updateData = {
+                    message: `Update time log for ${currentDate}`,
+                    content: content,
+                    ...(sha && { sha })
+                };
+
+                const updateResponse = await fetch(`https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${fileName}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                if (!updateResponse.ok) {
+                    throw new Error(`GitHub API error: ${updateResponse.status}`);
+                }
+
+                localStorage.setItem('lastGitHubSync', new Date().toISOString());
+                updateSyncStatus();
+                showAlert('success', `Data for ${currentDate} synced to GitHub successfully!`);
+            } catch (error) {
+                showAlert('error', 'GitHub sync failed: ' + error.message);
+            } finally {
+                syncBtn.classList.remove('btn-loading');
+                syncBtn.disabled = false;
+            }
+        }
+
+        async function fetchFromGitHub() {
+            const fileName = `time-log-${currentDate}.json`;
+            
+            try {
+                const response = await fetch(`https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${fileName}`, {
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (response.ok) {
+                    const fileData = await response.json();
+                    const content = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
+                    return content.data || {};
+                }
+            } catch (error) {
+                console.log('No existing data found:', error);
+            }
+            
+            return {};
+        }
+
+        async function loadFromGitHub() {
+            if (!githubConfig) {
+                showAlert('error', 'Please configure GitHub settings first.');
+                return;
+            }
+
+            try {
+                const cloudData = await fetchFromGitHub();
+                
+                if (Object.keys(cloudData).length > 0) {
+                    // Check for conflicts with local data
+                    const localDataExists = Object.keys(gridData).length > 0;
+                    
+                    if (localDataExists) {
+                        const conflicts = detectConflicts(gridData, cloudData);
+                        
+                        if (conflicts.length > 0) {
+                            showConflictModal(conflicts, gridData, cloudData);
+                            return;
+                        }
+                    }
+                    
+                    // No conflicts - use cloud data
+                    gridData = cloudData;
+                    saveData();
+                    renderGrid();
+                    updateSummary();
+                    showAlert('success', `Data for ${currentDate} loaded from GitHub!`);
+                } else {
+                    showAlert('info', `No data found in GitHub for ${currentDate}.`);
+                }
+            } catch (error) {
+                showAlert('error', 'Failed to load from GitHub: ' + error.message);
+            }
+        }
+
+        // Conflict Resolution Functions
+        function detectConflicts(localData, cloudData) {
+            const conflicts = [];
+            const allKeys = new Set([...Object.keys(localData), ...Object.keys(cloudData)]);
+            
+            for (const key of allKeys) {
+                const localEntry = localData[key];
+                const cloudEntry = cloudData[key];
+                
+                if (localEntry && cloudEntry) {
+                    if (localEntry.symbol !== cloudEntry.symbol || 
+                        Math.abs(new Date(localEntry.timestamp) - new Date(cloudEntry.timestamp)) > 1000) {
+                        conflicts.push({
+                            key,
+                            local: localEntry,
+                            cloud: cloudEntry
+                        });
+                    }
+                } else if (localEntry && !cloudEntry) {
+                    conflicts.push({
+                        key,
+                        local: localEntry,
+                        cloud: null
+                    });
+                } else if (!localEntry && cloudEntry) {
+                    conflicts.push({
+                        key,
+                        local: null,
+                        cloud: cloudEntry
+                    });
+                }
+            }
+            
+            return conflicts;
+        }
+
+        function showConflictModal(conflicts, localData, cloudData) {
+            conflictData = { conflicts, localData, cloudData };
+            
+            const modal = document.getElementById('conflictModal');
+            const details = document.getElementById('conflictDetails');
+            
+            details.innerHTML = `
+                <div style="margin: 1rem 0;">
+                    <strong>Conflicts found:</strong> ${conflicts.length} time slots<br>
+                    <strong>Local changes:</strong> ${Object.keys(localData).length} entries<br>
+                    <strong>Cloud changes:</strong> ${Object.keys(cloudData).length} entries
+                </div>
+                <div style="font-size: 0.875rem; color: #6b7280;">
+                    Choose how to resolve these conflicts:
+                    <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                        <li><strong>Smart Merge:</strong> Keep the most recent entry for each time slot</li>
+                        <li><strong>Keep Local:</strong> Use your device's data, discard cloud changes</li>
+                        <li><strong>Use Cloud:</strong> Use cloud data, discard local changes</li>
+                    </ul>
+                </div>
+            `;
+            
+            modal.classList.add('show');
+        }
+
+        function resolveConflict(resolution) {
+            if (!conflictData) return;
+            
+            const { conflicts, localData, cloudData } = conflictData;
+            let resolvedData = {};
+            
+            switch (resolution) {
+                case 'merge':
+                    // Smart merge: keep most recent entry for each slot
+                    resolvedData = { ...localData };
+                    for (const conflict of conflicts) {
+                        const { key, local, cloud } = conflict;
+                        if (local && cloud) {
+                            // Keep the most recent
+                            const localTime = new Date(local.timestamp);
+                            const cloudTime = new Date(cloud.timestamp);
+                            resolvedData[key] = localTime > cloudTime ? local : cloud;
+                        } else if (cloud && !local) {
+                            // Add cloud entry
+                            resolvedData[key] = cloud;
+                        }
+                        // If local exists but cloud doesn't, keep local (already in resolvedData)
+                    }
+                    break;
+                    
+                case 'local':
+                    resolvedData = localData;
+                    break;
+                    
+                case 'cloud':
+                    resolvedData = cloudData;
+                    break;
+                    
+                default:
+                    closeConflictModal();
+                    return;
+            }
+            
+            // Apply resolved data
+            gridData = resolvedData;
+            saveData();
+            renderGrid();
+            updateSummary();
+            
+            // Continue with sync
+            if (syncMode === 'onedrive') {
+                syncToOneDrive();
+            } else if (syncMode === 'github') {
+                syncToGitHub();
+            }
+            
+            closeConflictModal();
+            showAlert('success', `Conflicts resolved using ${resolution} strategy.`);
+        }
+
+        function closeConflictModal() {
+            document.getElementById('conflictModal').classList.remove('show');
+            conflictData = null;
+        }
+
+        // Cloud Sync Wrapper Functions
+        async function syncToCloud() {
+            if (syncMode === 'onedrive') {
+                await syncToOneDrive();
+            } else if (syncMode === 'github') {
+                await syncToGitHub();
+            } else {
+                showAlert('info', 'Please configure a sync method in Setup.');
+            }
+        }
+
+        async function loadFromCloud() {
+            if (syncMode === 'onedrive') {
+                await loadFromOneDrive();
+            } else if (syncMode === 'github') {
+                await loadFromGitHub();
+            } else {
+                showAlert('info', 'Please configure a sync method in Setup.');
+            }
+        }
+
+        // Data Management Functions
+        function createDataEntry(symbol) {
+            return {
+                symbol: symbol,
+                timestamp: new Date().toISOString(),
+                device: navigator.userAgent.substring(0, 50)
+            };
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem(`timeLog_${currentDate}`);
+            if (saved) {
+                const data = JSON.parse(saved);
+                // Convert old format to new format if needed
+                gridData = {};
+                for (const [key, value] of Object.entries(data)) {
+                    if (typeof value === 'string') {
+                        // Old format - convert to new format
+                        gridData[key] = createDataEntry(value);
+                    } else {
+                        // New format
+                        gridData[key] = value;
+                    }
+                }
+            } else {
+                gridData = {};
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(`timeLog_${currentDate}`, JSON.stringify(gridData));
+        }
+
+        function setupSymbolSelector() {
+            const buttons = document.querySelectorAll('.symbol-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    buttons.forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedSymbol = this.dataset.symbol;
+                });
+            });
+            
+            // Select first symbol by default
+            if (buttons.length > 0) {
+                buttons[0].click();
+            }
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('timeGrid');
+            
+            // Clear existing cells (keep headers)
+            const existingCells = grid.querySelectorAll('.time-cell, .hour-label');
+            existingCells.forEach(cell => cell.remove());
+
+            // Generate time slots from 5:00 to 4:00 (next day)
+            const hours = [];
+            for (let i = 5; i < 24; i++) {
+                hours.push(i);
+            }
+            for (let i = 0; i < 5; i++) {
+                hours.push(i);
+            }
+
+            hours.forEach(hour => {
+                // Hour label
+                const hourLabel = document.createElement('div');
+                hourLabel.className = 'hour-label';
+                hourLabel.textContent = hour.toString().padStart(2, '0') + ':00';
+                grid.appendChild(hourLabel);
+
+                // Time cells for each 15-minute interval
+                for (let interval = 0; interval < 4; interval++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'time-cell';
+                    cell.dataset.hour = hour;
+                    cell.dataset.interval = interval;
+
+                    const key = `${hour}-${interval}`;
+                    const entry = gridData[key];
+                    if (entry) {
+                        cell.textContent = entry.symbol;
+                        cell.classList.add('filled');
+                        cell.title = `${entry.symbol} - ${new Date(entry.timestamp).toLocaleString()}`;
+                    }
+
+                    cell.addEventListener('click', function() {
+                        const key = `${this.dataset.hour}-${this.dataset.interval}`;
+                        
+                        if (selectedSymbol === '') {
+                            // Clear cell
+                            delete gridData[key];
+                            this.textContent = '';
+                            this.classList.remove('filled');
+                            this.title = '';
+                        } else {
+                            // Set symbol with timestamp
+                            gridData[key] = createDataEntry(selectedSymbol);
+                            this.textContent = selectedSymbol;
+                            this.classList.add('filled');
+                            this.title = `${selectedSymbol} - ${new Date().toLocaleString()}`;
+                        }
+                        
+                        saveData();
+                        updateSummary();
+                    });
+
+                    grid.appendChild(cell);
+                }
+            });
+        }
+
+        function updateSummary() {
+            const summaryGrid = document.getElementById('summaryGrid');
+            const symbols = ['●', '✓', 'P', 'M', 'J', '○'];
+            const symbolNames = {
+                '●': 'Woke up',
+                '✓': 'Working',
+                'P': 'Pomodoro',
+                'M': 'Meditation',
+                'J': 'Jogging',
+                '○': 'Social'
+            };
+
+            summaryGrid.innerHTML = '';
+
+            symbols.forEach(symbol => {
+                const count = Object.values(gridData).filter(entry => entry.symbol === symbol).length;
+                
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                
+                if (symbol === '●') {
+                    // Wake up symbol - show as marker only, no time calculation
+                    item.innerHTML = `
+                        <div class="summary-symbol">${symbol}</div>
+                        <div class="summary-count">${symbolNames[symbol]}</div>
+                        <div class="summary-count">${count > 0 ? 'Marked' : 'Not set'}</div>
+                    `;
+                } else {
+                    // Regular activity symbols - calculate time
+                    const minutes = count * 15;
+                    const hours = Math.floor(minutes / 60);
+                    const remainingMinutes = minutes % 60;
+                    
+                    item.innerHTML = `
+                        <div class="summary-symbol">${symbol}</div>
+                        <div class="summary-count">${symbolNames[symbol]}</div>
+                        <div class="summary-count">${count} slots (${hours}h ${remainingMinutes}m)</div>
+                    `;
+                }
+                
+                summaryGrid.appendChild(item);
+            });
+        }
+
+        // Setup and configuration functions
+        function toggleSetup() {
+            const panel = document.getElementById('setupPanel');
+            panel.classList.toggle('show');
+        }
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.setup-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update content sections
+            document.querySelectorAll('.setup-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(tab + 'Setup').classList.add('active');
+        }
+
+        function loadSyncMode() {
+            const saved = localStorage.getItem('syncMode');
+            if (saved) {
+                syncMode = saved;
+            }
+        }
+
+        function saveSyncMode(mode) {
+            syncMode = mode;
+            localStorage.setItem('syncMode', mode);
+            updateSyncStatus();
+        }
+
+        function loadGitHubConfig() {
+            const saved = localStorage.getItem('githubConfig');
+            if (saved) {
+                githubConfig = JSON.parse(saved);
+                document.getElementById('githubUsername').value = githubConfig.username || '';
+                document.getElementById('githubRepo').value = githubConfig.repo || 'time-tracker-data';
+                document.getElementById('githubToken').value = githubConfig.token || '';
+                if (githubConfig.username && githubConfig.token) {
+                    saveSyncMode('github');
+                }
+            }
+        }
+
+        function updateSyncStatus() {
+            const indicator = document.getElementById('statusIndicator');
+            const syncBtn = document.getElementById('syncBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            
+            switch (syncMode) {
+                case 'onedrive':
+                    if (isOneDriveAuthenticated) {
+                        indicator.className = 'status-indicator status-onedrive';
+                        indicator.textContent = 'OneDrive sync enabled';
+                        syncBtn.textContent = '☁️ Sync to OneDrive';
+                        loadBtn.textContent = '📥 Load from OneDrive';
+                        syncBtn.style.display = 'inline-block';
+                        loadBtn.style.display = 'inline-block';
+                    } else {
+                        indicator.className = 'status-indicator status-local';
+                        indicator.textContent = 'OneDrive not connected - Click Setup to sign in';
+                        syncBtn.style.display = 'none';
+                        loadBtn.style.display = 'none';
+                    }
+                    break;
+                    
+                case 'github':
+                    if (githubConfig && githubConfig.token) {
+                        indicator.className = 'status-indicator status-github';
+                        indicator.textContent = 'GitHub sync enabled';
+                        syncBtn.textContent = '📤 Sync to GitHub';
+                        loadBtn.textContent = '📥 Load from GitHub';
+                        syncBtn.style.display = 'inline-block';
+                        loadBtn.style.display = 'inline-block';
+                    } else {
+                        indicator.className = 'status-indicator status-local';
+                        indicator.textContent = 'GitHub not configured - Click Setup to configure';
+                        syncBtn.style.display = 'none';
+                        loadBtn.style.display = 'none';
+                    }
+                    break;
+                    
+                default:
+                    indicator.className = 'status-indicator status-local';
+                    indicator.textContent = 'Local storage only - Click Setup to configure cloud sync';
+                    syncBtn.style.display = 'none';
+                    loadBtn.style.display = 'none';
+                    break;
+            }
+            
+            // Update last sync info
+            const lastSync = localStorage.getItem(`last${syncMode === 'github' ? 'GitHub' : 'OneDrive'}Sync`);
+            if (lastSync) {
+                const syncTime = new Date(lastSync).toLocaleString();
+                indicator.textContent += ` (Last sync: ${syncTime})`;
+            }
+        }
+
+        // Export/Import Functions
+        function exportData() {
+            const data = {
+                date: currentDate,
+                data: gridData,
+                timestamp: new Date().toISOString(),
+                device: navigator.userAgent.substring(0, 50)
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `time-log-${currentDate}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.data) {
+                        gridData = data.data;
+                        saveData();
+                        renderGrid();
+                        updateSummary();
+                        showAlert('success', 'Data imported successfully!');
+                    } else {
+                        throw new Error('Invalid file format');
+                    }
+                } catch (error) {
+                    showAlert('error', 'Failed to import data: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearDay() {
+            if (confirm('Are you sure you want to clear all data for this day?')) {
+                gridData = {};
+                saveData();
+                renderGrid();
+                updateSummary();
+                showAlert('info', 'Day cleared successfully.');
+            }
+        }
+
+        // Utility Functions
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.maxWidth = '300px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+
