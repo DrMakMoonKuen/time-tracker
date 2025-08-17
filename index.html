@@ -3322,24 +3322,42 @@
         }
 
         function formatTimeKey(timeKey) {
-            const [hour, quarter] = timeKey.split('-').map(Number);
+            if (!timeKey || typeof timeKey !== 'string') {
+                return 'Invalid Time';
+            }
+    
+            const parts = timeKey.split('-');
+            if (parts.length !== 2) {
+                return 'Invalid Time';
+            }
+    
+            const hour = parseInt(parts[0], 10);
+            const quarter = parseInt(parts[1], 10);
+    
+            if (isNaN(hour) || isNaN(quarter)) {
+                return 'Invalid Time';
+            }
+    
             const minutes = quarter * 15;
-            return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            const displayHour = hour >= 24 ? hour - 24 : hour;
+    
+            return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
         }
 
         function deleteEntry(date, timeKey) {
             if (confirm(`Delete entry for ${date} at ${formatTimeKey(timeKey)}?`)) {
                 if (timeData[date] && timeData[date][timeKey]) {
                     delete timeData[date][timeKey];
-                    
+            
                     // Clean up empty date objects
                     if (Object.keys(timeData[date]).length === 0) {
                         delete timeData[date];
                     }
-                    
+            
                     saveTimeData();
-                    refreshDataView();
-                    refreshAllViews();
+                    refreshDataView(); // This refreshes the data table
+                    updateSummary(); // This updates the daily summary
+                    updateDataStatus(); // This updates the status bar
                     showAlert('Entry deleted successfully', 'success');
                 }
             }
