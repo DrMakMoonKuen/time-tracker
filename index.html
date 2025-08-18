@@ -1417,7 +1417,7 @@
         }
 
         function updateDataStatus() {
-            const dataStatus = document.getElementById('dataStatus');
+            const dataStatus = document.getElementById('localStatus');
             const totalEntries = Object.keys(timeData).reduce((total, date) => {
                 return total + Object.keys(timeData[date] || {}).length;
             }, 0);
