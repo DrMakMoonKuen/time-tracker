@@ -1362,7 +1362,7 @@
             const newDate = addDays(currentDateObj, direction);
             currentDate = formatDate(newDate);
             
-            document.getElementById('dateInput').value = currentDate;
+            document.getElementById('currentDate').value = currentDate;
             updateDailyDate();
             loadTimeData();
             generateTimeGrid();
@@ -1380,7 +1380,7 @@
 
         function updateDailyDate() {
             const dateObj = parseDate(currentDate);
-            document.getElementById('dailyDate').textContent = formatDateLong(dateObj);
+            document.getElementById('currentDate').textContent = formatDateLong(dateObj);
         }
 
         // Sync status functions
