@@ -1459,7 +1459,7 @@
             // Set habits week to current week
             currentHabitsWeek = new Date(currentWeekStart);
             
-            document.getElementById('dateInput').value = currentDate;
+            document.getElementById('currentDate').value = currentDate;
             updateDailyDate();
             loadTimeData();
             loadHabitsData();
@@ -1485,7 +1485,7 @@
 
         function setupEventListeners() {
             // Date change
-            document.getElementById('dateInput').addEventListener('change', function() {
+            document.getElementById('currentDate').addEventListener('change', function() {
                 currentDate = this.value;
                 updateDailyDate();
                 loadTimeData();
