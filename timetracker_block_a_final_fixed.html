@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeTracker Pro - Block A</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .date-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .date-nav {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .date-nav:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .date-input {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            background: rgba(255,255,255,0.9);
+        }
+
+        .status-bar {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .main-content {
+            padding: 0;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tab.active {
+            color: #495057;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .nav-tab:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Daily View Styles */
+        .daily-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .activity-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .activity-btn {
+            padding: 10px 15px;
+            border: 2px solid #dee2e6;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .activity-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .activity-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(4, 1fr);
+            gap: 1px;
+            background: #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .grid-header {
+            background: #495057;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .hour-label {
+            background: #6c757d;
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-cell {
+            background: white;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .time-cell:hover {
+            background: #f8f9fa;
+            transform: scale(1.05);
+        }
+
+        .time-cell.has-data {
+            background: #e3f2fd;
+        }
+
+        /* Weekly View Styles */
+        .weekly-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .weekly-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 1px;
+            background: #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .weekly-header {
+            background: #495057;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .weekly-cell {
+            background: white;
+            min-height: 30px;
+            padding: 2px;
+            font-size: 10px;
+            position: relative;
+        }
+
+        .weekly-cell-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            height: 100%;
+            gap: 1px;
+        }
+
+        .quarter-cell {
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            min-height: 12px;
+        }
+
+        .quarter-cell.has-data {
+            background: #e3f2fd;
+            font-weight: bold;
+        }
+
+        /* Habits View Styles */
+        .habits-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .habits-period {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .auto-sync-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .auto-sync-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .habits-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .habits-week {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .habits-week h3 {
+            margin-bottom: 15px;
+            color: #495057;
+            text-align: center;
+        }
+
+        .habits-grid {
+            display: grid;
+            grid-template-columns: 120px repeat(7, 1fr);
+            gap: 1px;
+            background: #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .habit-header {
+            background: #495057;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .habit-label {
+            background: #6c757d;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .habit-cell {
+            background: white;
+            padding: 8px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .habit-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            transform: scale(1.2);
+        }
+
+        /* Data View Styles */
+        .data-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .data-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .data-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .data-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .data-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 1px solid #dee2e6;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .time-grid {
+                grid-template-columns: 60px repeat(4, 1fr);
+            }
+
+            .weekly-grid {
+                grid-template-columns: 60px repeat(7, 1fr);
+                font-size: 10px;
+            }
+
+            .habits-grid {
+                grid-template-columns: 100px repeat(7, 1fr);
+            }
+
+            .data-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .data-stats {
+                justify-content: center;
+            }
+        }
+
+        /* Samsung Fold 5 Optimizations */
+        @media (max-width: 374px) {
+            .weekly-grid {
+                min-width: 750px;
+                overflow-x: auto;
+            }
+
+            .habits-grid {
+                min-width: 600px;
+                overflow-x: auto;
+            }
+        }
+
+        /* Mac Retina Display Support */
+        @media (-webkit-min-device-pixel-ratio: 2) {
+            .time-cell, .weekly-cell, .habit-cell {
+                border: 0.5px solid #dee2e6;
+            }
+        }
+
+        /* Alert Styles */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Summary Styles */
+        .daily-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .summary-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .summary-symbol {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-time {
+            font-size: 14px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span>🕐</span>
+                TimeTracker Pro
+            </h1>
+            <div class="date-controls">
+                <button class="date-nav" onclick="changeDate(-1)">←</button>
+                <input type="date" id="currentDate" class="date-input" onchange="handleDateChange()">
+                <button class="date-nav" onclick="changeDate(1)">→</button>
+            </div>
+            <div class="status-bar" id="statusBar">
+                Local: 0 entries
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showTab('daily')">📅 Daily</button>
+                <button class="nav-tab" onclick="showTab('weekly')">📊 Weekly</button>
+                <button class="nav-tab" onclick="showTab('habits')">📈 Habits</button>
+                <button class="nav-tab" onclick="showTab('data')">🗂️ Data</button>
+            </div>
+
+            <!-- Daily Tab -->
+            <div id="daily" class="tab-content active">
+                <div class="daily-controls">
+                    <button class="date-nav" onclick="changeDate(-1)">← Previous Day</button>
+                    <h2 id="dailyDate">2025-08-18</h2>
+                    <button class="date-nav" onclick="changeDate(1)">Next Day →</button>
+                </div>
+
+                <div class="daily-summary" id="dailySummary">
+                    <div class="summary-title">Daily Summary</div>
+                    <div class="summary-grid" id="summaryGrid">
+                        <!-- Summary items will be populated here -->
+                    </div>
+                </div>
+
+                <h3>Select Activity Symbol</h3>
+                <div class="activity-selector">
+                    <button class="activity-btn selected" data-symbol="●" onclick="selectActivity('●')">●</button>
+                    <button class="activity-btn" data-symbol="✓" onclick="selectActivity('✓')">✓</button>
+                    <button class="activity-btn" data-symbol="P" onclick="selectActivity('P')">P</button>
+                    <button class="activity-btn" data-symbol="M" onclick="selectActivity('M')">M</button>
+                    <button class="activity-btn" data-symbol="J" onclick="selectActivity('J')">J</button>
+                    <button class="activity-btn" data-symbol="○" onclick="selectActivity('○')">○</button>
+                    <button class="activity-btn" data-symbol="×" onclick="selectActivity('×')">×</button>
+                </div>
+
+                <div class="time-grid" id="timeGrid">
+                    <!-- Time grid will be populated here -->
+                </div>
+            </div>
+
+            <!-- Weekly Tab -->
+            <div id="weekly" class="tab-content">
+                <div class="weekly-controls">
+                    <button class="date-nav" onclick="changeWeek(-1)">← Previous Week</button>
+                    <h2 id="weeklyPeriod">2025-08-18 - 2025-08-24</h2>
+                    <button class="date-nav" onclick="changeWeek(1)">Next Week →</button>
+                </div>
+
+                <div class="weekly-grid" id="weeklyGrid">
+                    <!-- Weekly grid will be populated here -->
+                </div>
+            </div>
+
+            <!-- Habits Tab -->
+            <div id="habits" class="tab-content">
+                <div class="habits-controls">
+                    <button class="date-nav" onclick="changeHabitsPeriod(-1)">← Previous 2 Weeks</button>
+                    <div class="habits-period" id="habitsPeriod">2025-08-18 - 2025-08-31</div>
+                    <button class="date-nav" onclick="changeHabitsPeriod(1)">Next 2 Weeks →</button>
+                </div>
+
+                <button class="auto-sync-btn" onclick="autoSyncFromTimeLog()">🔄 Auto-Sync from Time Log</button>
+
+                <div class="habits-container" id="habitsContainer">
+                    <!-- Habits grids will be populated here -->
+                </div>
+            </div>
+
+            <!-- Data Tab -->
+            <div id="data" class="tab-content">
+                <div class="data-controls">
+                    <div class="data-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalEntries">0</div>
+                            <div class="stat-label">Total Entries</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="datesWithData">0</div>
+                            <div class="stat-label">Dates with Data</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="duplicatesFound">0</div>
+                            <div class="stat-label">Duplicates Found</div>
+                        </div>
+                    </div>
+                    <div class="data-actions">
+                        <button class="btn btn-primary" onclick="findDuplicates()">🔍 Find Duplicates</button>
+                        <button class="btn btn-danger" onclick="cleanDuplicates()">🧹 Clean Duplicates</button>
+                        <button class="btn btn-primary" onclick="exportData()">📤 Export</button>
+                        <button class="btn btn-primary" onclick="importData()">📥 Import</button>
+                    </div>
+                </div>
+
+                <div class="data-filters">
+                    <input type="text" class="filter-input" id="dateFilter" placeholder="Filter by date (YYYY-MM-DD)" onchange="filterData()">
+                    <select class="filter-input" id="symbolFilter" onchange="filterData()">
+                        <option value="">All Symbols</option>
+                        <option value="●">● Wake up</option>
+                        <option value="✓">✓ Work</option>
+                        <option value="P">P Pomodoro</option>
+                        <option value="M">M Meditation</option>
+                        <option value="J">J Jogging</option>
+                        <option value="○">○ Social</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="clearFilters()">Clear Filters</button>
+                </div>
+
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Symbol</th>
+                                <th>Key</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <!-- Data rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let timeData = {};
+        let habitsData = {};
+        let currentDate = new Date();
+        let selectedSymbol = '●';
+        let currentWeekStart = new Date();
+        let currentHabitsStart = new Date();
+
+        // Habit list from Remarkable 2
+        const HABITS = [
+            'READING',
+            'OATMEAL', 
+            'JOGGING',
+            'WRITING',
+            'MEDITATION',
+            'STRETCHING',
+            'NO DRINK'
+        ];
+
+        // Symbol to habit mapping
+        const SYMBOL_TO_HABIT = {
+            'J': 'JOGGING',
+            'M': 'MEDITATION'
+        };
+
+        // Initialize the application
+        function init() {
+            console.log('INITIALIZATION DEBUG - Starting TimeTracker Pro Block A');
+            
+            // Set current date
+            const today = new Date();
+            currentDate = new Date(today);
+            currentWeekStart = getWeekStart(today);
+            currentHabitsStart = getHabitsStart(today);
+            
+            console.log('Today:', formatDate(today));
+            console.log('Current date:', formatDate(currentDate));
+            console.log('Week start:', formatDate(currentWeekStart));
+            console.log('Habits start:', formatDate(currentHabitsStart));
+            
+            // Load data
+            loadTimeData();
+            loadHabitsData();
+            
+            // Update UI
+            updateDateInput();
+            generateTimeGrid();
+            updateDailySummary();
+            generateWeeklyGrid();
+            generateHabitsGrid();
+            updateDataView();
+            updateStatusBar();
+            
+            console.log('INITIALIZATION DEBUG - Complete');
+        }
+
+        // Date utility functions
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseDate(dateStr) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        function addDays(date, days) {
+            const result = new Date(date);
+            result.setDate(result.getDate() + days);
+            return result;
+        }
+
+        function getWeekStart(date) {
+            const result = new Date(date);
+            const day = result.getDay();
+            const diff = day === 0 ? -6 : 1 - day; // Monday = 1, Sunday = 0
+            result.setDate(result.getDate() + diff);
+            return result;
+        }
+
+        function getHabitsStart(date) {
+            // Get the Monday of the current week
+            return getWeekStart(date);
+        }
+
+        function formatTimeKey(timeKey) {
+            if (!timeKey || typeof timeKey !== 'string') {
+                return 'Invalid Time';
+            }
+            
+            const parts = timeKey.split('-');
+            if (parts.length !== 2) {
+                return 'Invalid Time';
+            }
+            
+            const hour = parseInt(parts[0], 10);
+            const quarter = parseInt(parts[1], 10);
+            
+            if (isNaN(hour) || isNaN(quarter)) {
+                return 'Invalid Time';
+            }
+            
+            const minutes = quarter * 15;
+            const displayHour = hour >= 24 ? hour - 24 : hour;
+            
+            return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        function createTimeKey(hour, quarter) {
+            return `${hour}-${quarter}`;
+        }
+
+        // Data management functions
+        function loadTimeData() {
+            const stored = localStorage.getItem('timeTrackerData');
+            if (stored) {
+                try {
+                    timeData = JSON.parse(stored);
+                    console.log('Loaded time data:', Object.keys(timeData).length, 'dates');
+                } catch (e) {
+                    console.error('Error loading time data:', e);
+                    timeData = {};
+                }
+            } else {
+                timeData = {};
+            }
+        }
+
+        function saveTimeData() {
+            localStorage.setItem('timeTrackerData', JSON.stringify(timeData));
+            updateStatusBar();
+            updateDataView();
+        }
+
+        function loadHabitsData() {
+            const stored = localStorage.getItem('timeTrackerHabits');
+            if (stored) {
+                try {
+                    habitsData = JSON.parse(stored);
+                    console.log('Loaded habits data:', Object.keys(habitsData).length, 'dates');
+                } catch (e) {
+                    console.error('Error loading habits data:', e);
+                    habitsData = {};
+                }
+            } else {
+                habitsData = {};
+            }
+        }
+
+        function saveHabitsData() {
+            localStorage.setItem('timeTrackerHabits', JSON.stringify(habitsData));
+        }
+
+        // UI update functions
+        function updateDateInput() {
+            document.getElementById('currentDate').value = formatDate(currentDate);
+            document.getElementById('dailyDate').textContent = formatDate(currentDate);
+        }
+
+        function updateStatusBar() {
+            const totalEntries = Object.values(timeData).reduce((total, dayData) => {
+                return total + Object.keys(dayData).length;
+            }, 0);
+            
+            document.getElementById('statusBar').textContent = `Local: ${totalEntries} entries`;
+        }
+
+        // Date navigation functions
+        function changeDate(days) {
+            currentDate = addDays(currentDate, days);
+            updateDateInput();
+            generateTimeGrid();
+            updateDailySummary();
+        }
+
+        function handleDateChange() {
+            const dateInput = document.getElementById('currentDate');
+            currentDate = parseDate(dateInput.value);
+            generateTimeGrid();
+            updateDailySummary();
+        }
+
+        function changeWeek(weeks) {
+            currentWeekStart = addDays(currentWeekStart, weeks * 7);
+            generateWeeklyGrid();
+        }
+
+        function changeHabitsPeriod(periods) {
+            currentHabitsStart = addDays(currentHabitsStart, periods * 14);
+            generateHabitsGrid();
+        }
+
+        // Activity selection
+        function selectActivity(symbol) {
+            selectedSymbol = symbol;
+            
+            // Update button states
+            document.querySelectorAll('.activity-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`[data-symbol="${symbol}"]`).classList.add('selected');
+        }
+
+        // Time grid generation
+        function generateTimeGrid() {
+            const grid = document.getElementById('timeGrid');
+            grid.innerHTML = '';
+            
+            // Header row
+            const headers = ['Hour', ':00-:15', ':15-:30', ':30-:45', ':45-:00'];
+            headers.forEach(header => {
+                const div = document.createElement('div');
+                div.className = 'grid-header';
+                div.textContent = header;
+                grid.appendChild(div);
+            });
+            
+            // Time rows (5 AM to 4 AM next day)
+            const dateStr = formatDate(currentDate);
+            const dayData = timeData[dateStr] || {};
+            
+            for (let hour = 5; hour < 29; hour++) { // 5 AM to 4 AM (29 = 5 + 24)
+                const displayHour = hour >= 24 ? hour - 24 : hour;
+                
+                // Hour label
+                const hourLabel = document.createElement('div');
+                hourLabel.className = 'hour-label';
+                hourLabel.textContent = `${displayHour.toString().padStart(2, '0')}:00`;
+                grid.appendChild(hourLabel);
+                
+                // Quarter cells
+                for (let quarter = 0; quarter < 4; quarter++) {
+                    const timeKey = createTimeKey(hour, quarter);
+                    const cell = document.createElement('div');
+                    cell.className = 'time-cell';
+                    cell.dataset.timeKey = timeKey;
+                    
+                    if (dayData[timeKey]) {
+                        cell.textContent = dayData[timeKey];
+                        cell.classList.add('has-data');
+                    }
+                    
+                    cell.onclick = () => toggleTimeCell(dateStr, timeKey, cell);
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function toggleTimeCell(dateStr, timeKey, cell) {
+            if (!timeData[dateStr]) {
+                timeData[dateStr] = {};
+            }
+            
+            // Check for conflicts (different symbol in same interval)
+            const existingSymbol = timeData[dateStr][timeKey];
+            if (existingSymbol && existingSymbol !== selectedSymbol) {
+                if (!confirm(`This interval already has "${existingSymbol}". Replace with "${selectedSymbol}"?`)) {
+                    return;
+                }
+            }
+            
+            if (selectedSymbol === '×') {
+                // Clear the cell
+                delete timeData[dateStr][timeKey];
+                cell.textContent = '';
+                cell.classList.remove('has-data');
+                
+                // Clean up empty date objects
+                if (Object.keys(timeData[dateStr]).length === 0) {
+                    delete timeData[dateStr];
+                }
+            } else {
+                // Set the symbol
+                timeData[dateStr][timeKey] = selectedSymbol;
+                cell.textContent = selectedSymbol;
+                cell.classList.add('has-data');
+                
+                // Auto-sync to habits if applicable
+                if (SYMBOL_TO_HABIT[selectedSymbol]) {
+                    autoSyncSymbolToHabit(dateStr, selectedSymbol);
+                }
+            }
+            
+            saveTimeData();
+            updateDailySummary();
+            generateWeeklyGrid(); // Refresh weekly view
+            generateHabitsGrid(); // Refresh habits view
+        }
+
+        // Daily summary
+        function updateDailySummary() {
+            const dateStr = formatDate(currentDate);
+            const dayData = timeData[dateStr] || {};
+            const summaryGrid = document.getElementById('summaryGrid');
+            
+            // Count symbols (excluding wake up ●)
+            const symbolCounts = {};
+            Object.values(dayData).forEach(symbol => {
+                if (symbol !== '●') { // Exclude wake up from time calculations
+                    symbolCounts[symbol] = (symbolCounts[symbol] || 0) + 1;
+                }
+            });
+            
+            // Generate summary items
+            summaryGrid.innerHTML = '';
+            
+            if (Object.keys(symbolCounts).length === 0) {
+                summaryGrid.innerHTML = '<div class="summary-item"><div class="summary-symbol">No activities</div><div class="summary-time">0h 0m</div></div>';
+                return;
+            }
+            
+            Object.entries(symbolCounts).forEach(([symbol, count]) => {
+                const minutes = count * 15;
+                const hours = Math.floor(minutes / 60);
+                const remainingMinutes = minutes % 60;
+                
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                item.innerHTML = `
+                    <div class="summary-symbol">${symbol}</div>
+                    <div class="summary-time">${hours}h ${remainingMinutes}m</div>
+                `;
+                summaryGrid.appendChild(item);
+            });
+        }
+
+        // Weekly grid generation
+        function generateWeeklyGrid() {
+            const grid = document.getElementById('weeklyGrid');
+            grid.innerHTML = '';
+            
+            // Update period display
+            const weekEnd = addDays(currentWeekStart, 6);
+            document.getElementById('weeklyPeriod').textContent = 
+                `${formatDate(currentWeekStart)} - ${formatDate(weekEnd)}`;
+            
+            // Header row
+            const headers = ['Hour', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            headers.forEach((header, index) => {
+                const div = document.createElement('div');
+                div.className = 'weekly-header';
+                if (index > 0) {
+                    const date = addDays(currentWeekStart, index - 1);
+                    div.innerHTML = `${header}<br>${formatDate(date).slice(5)}`;
+                } else {
+                    div.textContent = header;
+                }
+                grid.appendChild(div);
+            });
+            
+            // Time rows (5 AM to 4 AM next day)
+            for (let hour = 5; hour < 29; hour++) {
+                const displayHour = hour >= 24 ? hour - 24 : hour;
+                
+                // Hour label
+                const hourLabel = document.createElement('div');
+                hourLabel.className = 'weekly-header';
+                hourLabel.textContent = `${displayHour.toString().padStart(2, '0')}:00`;
+                grid.appendChild(hourLabel);
+                
+                // Day cells
+                for (let day = 0; day < 7; day++) {
+                    const date = addDays(currentWeekStart, day);
+                    const dateStr = formatDate(date);
+                    const dayData = timeData[dateStr] || {};
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'weekly-cell';
+                    
+                    // Create 2x2 grid for quarters
+                    const cellGrid = document.createElement('div');
+                    cellGrid.className = 'weekly-cell-grid';
+                    
+                    for (let quarter = 0; quarter < 4; quarter++) {
+                        const timeKey = createTimeKey(hour, quarter);
+                        const quarterCell = document.createElement('div');
+                        quarterCell.className = 'quarter-cell';
+                        
+                        if (dayData[timeKey]) {
+                            quarterCell.textContent = dayData[timeKey];
+                            quarterCell.classList.add('has-data');
+                        }
+                        
+                        cellGrid.appendChild(quarterCell);
+                    }
+                    
+                    cell.appendChild(cellGrid);
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // Habits grid generation
+        function generateHabitsGrid() {
+            const container = document.getElementById('habitsContainer');
+            container.innerHTML = '';
+            
+            // Update period display
+            const habitsEnd = addDays(currentHabitsStart, 13);
+            document.getElementById('habitsPeriod').textContent = 
+                `${formatDate(currentHabitsStart)} - ${formatDate(habitsEnd)}`;
+            
+            // Generate two weeks
+            for (let week = 0; week < 2; week++) {
+                const weekStart = addDays(currentHabitsStart, week * 7);
+                const weekEnd = addDays(weekStart, 6);
+                
+                const weekDiv = document.createElement('div');
+                weekDiv.className = 'habits-week';
+                
+                const weekTitle = document.createElement('h3');
+                weekTitle.textContent = `Week ${week + 1}: ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+                weekDiv.appendChild(weekTitle);
+                
+                const grid = document.createElement('div');
+                grid.className = 'habits-grid';
+                
+                // Header row
+                const headers = ['Habit', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                headers.forEach((header, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'habit-header';
+                    if (index > 0) {
+                        const date = addDays(weekStart, index - 1);
+                        div.innerHTML = `${header}<br>${formatDate(date).slice(8)}`;
+                    } else {
+                        div.textContent = header;
+                    }
+                    grid.appendChild(div);
+                });
+                
+                // Habit rows
+                HABITS.forEach(habit => {
+                    // Habit label
+                    const label = document.createElement('div');
+                    label.className = 'habit-label';
+                    label.textContent = habit;
+                    grid.appendChild(label);
+                    
+                    // Day cells
+                    for (let day = 0; day < 7; day++) {
+                        const date = addDays(weekStart, day);
+                        const dateStr = formatDate(date);
+                        
+                        const cell = document.createElement('div');
+                        cell.className = 'habit-cell';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'habit-checkbox';
+                        checkbox.checked = habitsData[dateStr] && habitsData[dateStr][habit];
+                        checkbox.onchange = () => toggleHabit(dateStr, habit, checkbox.checked);
+                        
+                        cell.appendChild(checkbox);
+                        grid.appendChild(cell);
+                    }
+                });
+                
+                weekDiv.appendChild(grid);
+                container.appendChild(weekDiv);
+            }
+        }
+
+        function toggleHabit(dateStr, habit, checked) {
+            if (!habitsData[dateStr]) {
+                habitsData[dateStr] = {};
+            }
+            
+            if (checked) {
+                habitsData[dateStr][habit] = true;
+            } else {
+                delete habitsData[dateStr][habit];
+                
+                // Clean up empty date objects
+                if (Object.keys(habitsData[dateStr]).length === 0) {
+                    delete habitsData[dateStr];
+                }
+            }
+            
+            saveHabitsData();
+        }
+
+        // Auto-sync functions
+        function autoSyncSymbolToHabit(dateStr, symbol) {
+            const habit = SYMBOL_TO_HABIT[symbol];
+            if (habit) {
+                if (!habitsData[dateStr]) {
+                    habitsData[dateStr] = {};
+                }
+                habitsData[dateStr][habit] = true;
+                saveHabitsData();
+                console.log(`Auto-synced ${symbol} → ${habit} for ${dateStr}`);
+            }
+        }
+
+        function autoSyncFromTimeLog() {
+            let syncCount = 0;
+            
+            // Clear existing auto-synced habits
+            Object.keys(habitsData).forEach(dateStr => {
+                Object.keys(SYMBOL_TO_HABIT).forEach(symbol => {
+                    const habit = SYMBOL_TO_HABIT[symbol];
+                    if (habitsData[dateStr] && habitsData[dateStr][habit]) {
+                        // Check if this habit should be synced from time log
+                        const dayData = timeData[dateStr] || {};
+                        const hasSymbol = Object.values(dayData).includes(symbol);
+                        if (!hasSymbol) {
+                            delete habitsData[dateStr][habit];
+                            if (Object.keys(habitsData[dateStr]).length === 0) {
+                                delete habitsData[dateStr];
+                            }
+                        }
+                    }
+                });
+            });
+            
+            // Sync from time log
+            Object.entries(timeData).forEach(([dateStr, dayData]) => {
+                Object.values(dayData).forEach(symbol => {
+                    const habit = SYMBOL_TO_HABIT[symbol];
+                    if (habit) {
+                        if (!habitsData[dateStr]) {
+                            habitsData[dateStr] = {};
+                        }
+                        if (!habitsData[dateStr][habit]) {
+                            habitsData[dateStr][habit] = true;
+                            syncCount++;
+                        }
+                    }
+                });
+            });
+            
+            saveHabitsData();
+            generateHabitsGrid();
+            showAlert(`Auto-synced ${syncCount} habits from time log`, 'success');
+        }
+
+        // Data view functions
+        function updateDataView() {
+            updateDataStats();
+            refreshDataTable();
+        }
+
+        function updateDataStats() {
+            const totalEntries = Object.values(timeData).reduce((total, dayData) => {
+                return total + Object.keys(dayData).length;
+            }, 0);
+            
+            const datesWithData = Object.keys(timeData).length;
+            
+            document.getElementById('totalEntries').textContent = totalEntries;
+            document.getElementById('datesWithData').textContent = datesWithData;
+        }
+
+        function refreshDataTable() {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+            
+            const dateFilter = document.getElementById('dateFilter').value;
+            const symbolFilter = document.getElementById('symbolFilter').value;
+            
+            // Collect all entries
+            const entries = [];
+            Object.entries(timeData).forEach(([date, dayData]) => {
+                Object.entries(dayData).forEach(([timeKey, symbol]) => {
+                    entries.push({ date, timeKey, symbol });
+                });
+            });
+            
+            // Sort by date and time
+            entries.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.timeKey.localeCompare(b.timeKey);
+            });
+            
+            // Filter entries
+            const filteredEntries = entries.filter(entry => {
+                if (dateFilter && !entry.date.includes(dateFilter)) return false;
+                if (symbolFilter && entry.symbol !== symbolFilter) return false;
+                return true;
+            });
+            
+            // Populate table
+            filteredEntries.forEach(entry => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entry.date}</td>
+                    <td>${formatTimeKey(entry.timeKey)}</td>
+                    <td>${entry.symbol}</td>
+                    <td>${entry.date}-${entry.timeKey}</td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteEntry('${entry.date}', '${entry.timeKey}')">
+                            Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function deleteEntry(date, timeKey) {
+            if (confirm(`Delete entry for ${date} at ${formatTimeKey(timeKey)}?`)) {
+                if (timeData[date] && timeData[date][timeKey]) {
+                    delete timeData[date][timeKey];
+                    
+                    // Clean up empty date objects
+                    if (Object.keys(timeData[date]).length === 0) {
+                        delete timeData[date];
+                    }
+                    
+                    saveTimeData();
+                    refreshDataTable();
+                    updateDailySummary();
+                    generateTimeGrid();
+                    generateWeeklyGrid();
+                    showAlert('Entry deleted successfully', 'success');
+                }
+            }
+        }
+
+        function filterData() {
+            refreshDataTable();
+        }
+
+        function clearFilters() {
+            document.getElementById('dateFilter').value = '';
+            document.getElementById('symbolFilter').value = '';
+            refreshDataTable();
+        }
+
+        function findDuplicates() {
+            const duplicates = [];
+            const seen = new Set();
+            
+            Object.entries(timeData).forEach(([date, dayData]) => {
+                Object.entries(dayData).forEach(([timeKey, symbol]) => {
+                    const key = `${date}-${timeKey}`;
+                    if (seen.has(key)) {
+                        duplicates.push({ date, timeKey, symbol });
+                    } else {
+                        seen.add(key);
+                    }
+                });
+            });
+            
+            document.getElementById('duplicatesFound').textContent = duplicates.length;
+            
+            if (duplicates.length > 0) {
+                showAlert(`Found ${duplicates.length} duplicate entries`, 'warning');
+            } else {
+                showAlert('No duplicates found', 'success');
+            }
+        }
+
+        function cleanDuplicates() {
+            let cleanedCount = 0;
+            const conflicts = [];
+            
+            // Find and resolve duplicates
+            Object.entries(timeData).forEach(([date, dayData]) => {
+                const timeKeys = Object.keys(dayData);
+                const duplicateKeys = timeKeys.filter((key, index) => timeKeys.indexOf(key) !== index);
+                
+                duplicateKeys.forEach(timeKey => {
+                    // Check for conflicts (different symbols in same interval)
+                    const symbols = Object.entries(dayData)
+                        .filter(([key]) => key === timeKey)
+                        .map(([, symbol]) => symbol);
+                    
+                    const uniqueSymbols = [...new Set(symbols)];
+                    
+                    if (uniqueSymbols.length > 1) {
+                        conflicts.push({ date, timeKey, symbols: uniqueSymbols });
+                    } else {
+                        // Remove exact duplicates
+                        cleanedCount++;
+                    }
+                });
+            });
+            
+            if (conflicts.length > 0) {
+                showAlert(`Found ${conflicts.length} conflicts that need manual resolution`, 'warning');
+            } else {
+                saveTimeData();
+                updateDataView();
+                generateTimeGrid();
+                generateWeeklyGrid();
+                showAlert(`Cleaned ${cleanedCount} duplicate entries`, 'success');
+            }
+        }
+
+        function exportData() {
+            const data = {
+                timeData: timeData,
+                habitsData: habitsData,
+                exportDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `timetracker-backup-${formatDate(new Date())}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showAlert('Data exported successfully', 'success');
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        if (data.timeData) {
+                            timeData = data.timeData;
+                            saveTimeData();
+                        }
+                        
+                        if (data.habitsData) {
+                            habitsData = data.habitsData;
+                            saveHabitsData();
+                        }
+                        
+                        // Refresh all views
+                        generateTimeGrid();
+                        updateDailySummary();
+                        generateWeeklyGrid();
+                        generateHabitsGrid();
+                        updateDataView();
+                        
+                        showAlert('Data imported successfully', 'success');
+                    } catch (error) {
+                        showAlert('Error importing data: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+
+        // Tab navigation
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to selected nav tab
+            event.target.classList.add('active');
+            
+            // Refresh tab content if needed
+            if (tabName === 'weekly') {
+                generateWeeklyGrid();
+            } else if (tabName === 'habits') {
+                generateHabitsGrid();
+            } else if (tabName === 'data') {
+                updateDataView();
+            }
+        }
+
+        // Alert system
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            // Insert at the top of the active tab
+            const activeTab = document.querySelector('.tab-content.active');
+            activeTab.insertBefore(alertDiv, activeTab.firstChild);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 3000);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
