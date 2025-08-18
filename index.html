@@ -1580,20 +1580,28 @@
                         const hour = parseInt(this.dataset.hour);
                         const interval = parseInt(this.dataset.interval);
                         const key = `${hour}-${interval}`;
-                        
+    
                         if (!timeData[currentDate]) {
                             timeData[currentDate] = {};
                         }
-                        
+    
                         if (selectedSymbol === '×') {
                             delete timeData[currentDate][key];
                             this.textContent = '';
                             this.classList.remove('filled');
                         } else {
+                            // ADD VALIDATION: Check if slot already has an activity
+                            if (timeData[currentDate][key]) {
+                                const existingActivity = timeData[currentDate][key];
+                                if (!confirm(`This time slot already has "${existingActivity}". Replace with "${selectedSymbol}"?`)) {
+                                    return; // User cancelled, don't change
+                                }
+                            }
+        
                             timeData[currentDate][key] = selectedSymbol;
                             this.textContent = selectedSymbol;
                             this.classList.add('filled');
-                            
+        
                             // Auto-detect habits
                             autoDetectHabits(currentDate, selectedSymbol);
                         }
