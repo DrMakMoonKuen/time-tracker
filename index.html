@@ -1233,10 +1233,10 @@
                             <button class="btn btn-primary" onclick="testGitHubConnection()" id="testGithubBtn" style="display: none; background: #10b981;">
                                 ✓ Test Connection
                             </button>
-                            <button class="btn btn-primary" onclick="syncToGitHub()" id="syncGithubBtn" style="display: none; background: #dc2626;">
+                            <button class="btn btn-primary" onclick="syncToGitHub()" id="syncGithubBtn" style="display: none; background: #6366f1;">
                                 📤 GitHub Sync
                             </button>
-                            <button class="btn btn-primary" onclick="loadFromGitHub()" id="loadGithubBtn" style="display: none; background: #3b82f6;">
+                            <button class="btn btn-primary" onclick="loadFromGitHub()" id="loadGithubBtn" style="display: none; background: #6366f1;">
                                 📥 GitHub Load
                             </button>
                             <button class="btn btn-primary" onclick="disconnectGitHub()" id="disconnectGithubBtn" style="display: none; background: #6b7280;">
@@ -1406,10 +1406,10 @@
             const githubStatus = document.getElementById('githubStatus');
             
             if (githubUser) {
-                githubDot.className = 'sync-dot connected';
+                githubDot.className = 'sync-connected';
                 githubStatus.textContent = `GitHub: ${githubUser.login}`;
             } else {
-                githubDot.className = 'sync-dot disconnected';
+                githubDot.className = 'sync-disconnected';
                 githubStatus.textContent = 'GitHub: Not connected';
             }
         }
@@ -1419,10 +1419,10 @@
             const onedriveStatus = document.getElementById('onedriveStatus');
             
             if (currentAccount) {
-                onedriveDot.className = 'sync-dot connected';
+                onedriveDot.className = 'sync-connected';
                 onedriveStatus.textContent = `OneDrive: ${currentAccount.username}`;
             } else {
-                onedriveDot.className = 'sync-dot disconnected';
+                onedriveDot.className = 'sync-disconnected';
                 onedriveStatus.textContent = 'OneDrive: Not connected';
             }
         }
