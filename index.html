@@ -3295,6 +3295,25 @@
             }
         }
 
+        function debugOneDriveState() {
+    console.log('=== OneDrive Debug State ===');
+    console.log('msalInstance:', msalInstance);
+    console.log('currentAccount:', currentAccount);
+    console.log('MSAL loaded:', typeof msal !== 'undefined');
+    
+    if (msalInstance) {
+        const accounts = msalInstance.getAllAccounts();
+        console.log('MSAL accounts:', accounts);
+        if (accounts.length > 0) {
+            console.log('Setting currentAccount from MSAL...');
+            currentAccount = accounts[0];
+            updateAuthStatus(`Signed in as: ${currentAccount.username}`);
+            showSignedInControls();
+        }
+    }
+    console.log('=== End Debug ===');
+}
+        
         async function testOneDriveConnection() {
             if (!currentAccount) {
                 showAlert('Please sign in first', 'error');
