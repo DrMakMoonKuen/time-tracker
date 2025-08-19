@@ -3085,7 +3085,7 @@
         }
 
         async function uploadToOneDrive(accessToken, fileName, content) {
-            const response = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`, {
+            const response = await fetch('https://graph.microsoft.com/v1.0' + OD_FILE, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
@@ -3101,7 +3101,7 @@
 
         async function downloadFromOneDrive(accessToken, fileName) {
             try {
-                const response = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/TimeTracker/${fileName}:/content`, {
+                const response = await fetch('https://graph.microsoft.com/v1.0' + OD_FILE, {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
                     }
@@ -3220,6 +3220,9 @@
             document.getElementById('signInBtn').style.display = 'flex';
             document.getElementById('signedInControls').style.display = 'none';
         }
+
+        // OneDrive root path (visible folder, Option A)
+const OD_FILE = '/me/drive/root:/TimeTracker/timetracker-full-data.json:/content';
 
         async function signInToOneDrive() {
             if (!msalInstance) {
