@@ -1263,8 +1263,15 @@
                         </button>
                         
                         <div id="signedInControls" style="display: none; margin-top: 12px;">
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <button class="btn btn-success" onclick="testOneDriveConnection()" id="testOnedriveBtn">
                                 🔗 Test Connection
+                            </button>
+                            <button class="btn btn-primary" onclick="syncToOneDrive()" style="background: #0078d4;">
+                                ☁️ OneDrive Sync
+                            </button>
+                            <button class="btn btn-primary" onclick="loadFromOneDrive()" style="background: #0078d4;">
+                                📥 OneDrive Load
                             </button>
                             <button class="btn btn-danger" onclick="signOutFromOneDrive()" id="signOutBtn">
                                 🚪 Sign Out
@@ -2356,6 +2363,10 @@
 
         function showGitHubConnectedControls() {
             document.getElementById('connectGithubBtn').style.display = 'none';
+            // ADD THESE TWO LINES:
+            document.getElementById('githubTokenInput').style.display = 'none';
+            document.querySelector('.alert.alert-info').style.display = 'none';
+    
             document.getElementById('testGithubBtn').style.display = 'inline-block';
             document.getElementById('syncGithubBtn').style.display = 'inline-block';
             document.getElementById('loadGithubBtn').style.display = 'inline-block';
@@ -2364,6 +2375,10 @@
 
         function hideGitHubConnectedControls() {
             document.getElementById('connectGithubBtn').style.display = 'inline-block';
+            // ADD THESE TWO LINES:
+            document.getElementById('githubTokenInput').style.display = 'block';
+            document.querySelector('.alert.alert-info').style.display = 'block';
+    
             document.getElementById('testGithubBtn').style.display = 'none';
             document.getElementById('syncGithubBtn').style.display = 'none';
             document.getElementById('loadGithubBtn').style.display = 'none';
