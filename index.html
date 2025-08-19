@@ -3088,7 +3088,7 @@
         }
 
         async function uploadToOneDrive(accessToken, fileName, content) {
-            const response = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/TimeTracker/${fileName}:/content`, {
+            const response = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
