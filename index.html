@@ -1036,8 +1036,8 @@
                 <button class="btn btn-secondary" onclick="showSetup()">⚙️ Setup</button>
                 <button class="btn btn-primary" onclick="syncToGitHub()" style="background: #6366f1;">📤 GitHub Sync</button>
                 <button class="btn btn-primary" onclick="loadFromGitHub()" style="background: #6366f1;">📥 GitHub Load</button>
-                <button class="btn btn-primary" onclick="syncToOneDrive()" style="background: #0078d4;">☁️ OneDrive Sync</button>
-                <button class="btn btn-primary" onclick="loadFromOneDrive()" style="background: #3b82f6;">📥 Load</button>
+                <button class="btn btn-primary" id="onedriveSync" style="background: #0078d4;">☁️ OneDrive Sync</button>
+                <button class="btn btn-primary" id="onedriveLoad" style="background: #3b82f6;">📥 Load</button>
                 <button class="btn btn-secondary" onclick="exportData()">📤 Export</button>
                 <button class="btn btn-secondary" onclick="importData()">📥 Import</button>
             </div>
@@ -1268,11 +1268,9 @@
     </div>
     <!-- END OF NEW CODE -->
     
-    <button class="sign-in-btn onedrive-btn" id="signInBtn" onclick="signInToOneDrive()" disabled>
-
                         <button class="sign-in-btn onedrive-btn" id="signInBtn" onclick="signInToOneDrive()" disabled>
                             <span>🔄</span>
-                            <span>Loading Microsoft Sign-In...</span>
+                            <span>Sign-In with Microsoft</span>
                         </button>
                         
                         <div id="signedInControls" style="display: none; margin-top: 12px;">
@@ -3733,6 +3731,30 @@
             document.getElementById('symbolFilter').value = '';
             filterDataTable();
         }
+        
+        // Setup OneDrive event handlers
+        function setupOneDriveEventHandlers() {
+            // Main toolbar OneDrive Sync button
+            const onedriveSync = document.querySelector('button[onclick="syncToOneDrive()"]');
+            if (onedriveSync) {
+                onedriveSync.onclick = function() { syncToOneDrive(); };
+                console.log('OneDrive Sync button event handler added');
+            }
+
+            // Main toolbar OneDrive Load button
+            const onedriveLoad = document.querySelector('button[onclick="loadFromOneDrive()"]');
+            if (onedriveLoad) {
+                onedriveLoad.onclick = function() { loadFromOneDrive(); };
+                console.log('OneDrive Load button event handler added');
+            }
+
+            // Setup panel Sign In button
+            const signInBtn = document.getElementById('signInBtn');
+            if (signInBtn) {
+                signInBtn.onclick = function() { signInToOneDrive(); };
+                console.log('OneDrive Sign In button event handler added');
+            }
+        }
 
         // Main initialization function
         function initializeApp() {
@@ -3765,7 +3787,10 @@
             // Update status indicators
             updateGitHubStatus();
             updateOneDriveStatus();
-            
+                        
+            // Setup OneDrive event handlers
+            setupOneDriveEventHandlers();
+
             console.log('=== INITIALIZATION COMPLETE ===');
             console.log('Today:', currentDate);
             console.log('Week start:', formatDate(currentWeekStart));
