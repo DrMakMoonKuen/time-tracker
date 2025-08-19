@@ -1256,7 +1256,20 @@
                     
                     <div style="margin: 16px 0;">
                         <div id="onedriveAuthStatus" style="margin-bottom: 12px;">Status: Loading...</div>
-                        
+                        <div style="margin: 16px 0;">
+    <div id="onedriveAuthStatus" style="margin-bottom: 12px;">Status: Loading...</div>
+    
+    <!-- ADD THIS NEW DIV HERE -->
+    <div style="margin: 8px 0;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+            <input type="checkbox" id="autoSyncToggle" onchange="toggleAutoSync()" checked>
+            <span>🔄 Enable auto-sync (saves to OneDrive automatically)</span>
+        </label>
+    </div>
+    <!-- END OF NEW CODE -->
+    
+    <button class="sign-in-btn onedrive-btn" id="signInBtn" onclick="signInToOneDrive()" disabled>
+
                         <button class="sign-in-btn onedrive-btn" id="signInBtn" onclick="signInToOneDrive()" disabled>
                             <span>🔄</span>
                             <span>Loading Microsoft Sign-In...</span>
@@ -1420,6 +1433,18 @@
                 githubStatus.textContent = 'GitHub: Not connected';
             }
         }
+
+        // Auto-sync configuration
+        let autoSyncSettings = {
+            enabled: true,
+            oneDriveEnabled: true,
+            githubEnabled: false,
+            debounceDelay: 5000, // 5 seconds after last change
+            maxRetries: 3
+        };
+
+        let autoSyncTimeout = null;
+        let autoSyncInProgress = false;
 
         function updateOneDriveStatus() {
             const onedriveDot = document.getElementById('onedriveStatus');
@@ -1972,9 +1997,57 @@
         }
 
         // Data management
+
         function saveTimeData() {
             localStorage.setItem('timeTrackerData', JSON.stringify(timeData));
             updateDataStatus();
+    
+            // Trigger auto-sync if enabled
+            if (autoSyncSettings.enabled && autoSyncSettings.oneDriveEnabled) {
+                scheduleAutoSync();
+            }
+        }
+
+        function scheduleAutoSync() {
+            // Clear existing timeout to debounce rapid changes
+            if (autoSyncTimeout) {
+                clearTimeout(autoSyncTimeout);
+            }
+    
+            // Schedule auto-sync after delay
+            autoSyncTimeout = setTimeout(() => {
+                performAutoSync();
+            }, autoSyncSettings.debounceDelay);
+    
+            console.log('Auto-sync scheduled in', autoSyncSettings.debounceDelay / 1000, 'seconds');
+        }
+
+        async function performAutoSync() {
+            // Check if already syncing or not signed in
+            if (autoSyncInProgress || !currentAccount) {
+                return;
+        }
+    
+        try {
+            autoSyncInProgress = true;
+            console.log('🔄 Starting auto-sync to OneDrive...');
+        
+            await syncToOneDrive();
+                console.log('✅ Auto-sync completed successfully');
+        
+            // Update status to show last auto-sync time
+            updateOneDriveStatus('Auto-synced at ' + new Date().toLocaleTimeString());
+        
+            } catch (error) {
+                console.log('❌ Auto-sync failed:', error.message);
+                // Don't show error alerts for auto-sync failures to avoid interrupting user
+                    } finally {
+                autoSyncInProgress = false;
+            }
+        }
+
+        function isAutoSyncEnabled() {
+            return autoSyncSettings.enabled && autoSyncSettings.oneDriveEnabled && currentAccount;
         }
 
         function loadTimeData() {
@@ -3178,6 +3251,33 @@
                 showAlert('Sign-in failed: ' + error.message, 'error');
             }
         }
+
+                function toggleAutoSync() {
+            const toggle = document.getElementById('autoSyncToggle');
+            autoSyncSettings.oneDriveEnabled = toggle.checked;
+            
+            // Save setting to localStorage
+            localStorage.setItem('autoSyncSettings', JSON.stringify(autoSyncSettings));
+            
+            if (toggle.checked) {
+                console.log('✅ Auto-sync enabled');
+                showAlert('Auto-sync enabled - changes will sync automatically', 'success');
+            } else {
+                console.log('❌ Auto-sync disabled');
+                showAlert('Auto-sync disabled - use manual sync buttons', 'info');
+                
+                // Clear any pending auto-sync
+                if (autoSyncTimeout) {
+                    clearTimeout(autoSyncTimeout);
+                }
+            }
+        }
+
+        async function signOutFromOneDrive() {
+            if (!msalInstance || !currentAccount) {
+                return;
+            }
+            // ... rest of existing function
 
         async function signOutFromOneDrive() {
             if (!msalInstance || !currentAccount) {
